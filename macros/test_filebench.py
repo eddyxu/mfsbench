@@ -25,11 +25,7 @@ def prepare_disks(**kwargs):
     print('Preparing directories...{}'.format(basedir))
     if not os.path.exists(basedir):
         os.makedirs(basedir)
-    subdirs = os.listdir(basedir)
-    for ram_dir in subdirs:
-        mntpnt = os.path.join(basedir, ram_dir)
-        if os.path.ismount(mntpnt):
-            mfsbase.umount(mntpnt)
+    mfsbase.umount_all(basedir)
 
     for nram in range(num_subdirs):
         disk_path = '/dev/ram{}'.format(nram)
@@ -39,14 +35,23 @@ def prepare_disks(**kwargs):
         mfsbase.mount(disk_path, 'ramdisks/ram{}'.format(nram))
 
 
+def run_filebench():
+    """Run filebench results.
+    """
+    lockstat = mfsbase.LockstatProfiler()
+    lockstat.start()
+
+    lockstat.stop()
+    print(lockstat.report())
+
+
 def test_scalability(args):
     prepare_disks()
-    pass
 
 
 def test_numa(args):
     prepare_disks()
-    pass
+    run_filebench()
 
 
 def main():
