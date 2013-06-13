@@ -38,12 +38,14 @@ def prepare_disks(**kwargs):
             os.makedirs(mntpnt)
         mfsbase.mount(disk_path, 'ramdisks/ram{}'.format(nram))
 
+
 def test_scalability(args):
     prepare_disks()
     pass
 
 
 def test_numa(args):
+    prepare_disks()
     pass
 
 
