@@ -9,6 +9,7 @@ import os
 import sys
 from subprocess import call
 
+
 def check_root_or_exit():
     if not os.geteuid() == 0:
         sys.exit("You must run this program with root privilege.")
@@ -51,7 +52,25 @@ def umount_all(basedir):
             umount(mntpnt)
 
 
-class LockstatProfiler:
+class Profiler:
+    """The interface of Profiler.
+    """
+    def start(self):
+        pass
+
+    def stop(self):
+        pass
+
+    def report(self):
+        pass
+
+    def dump(self, outfile):
+        pass
+
+
+class LockstatProfiler(Profiler):
+    """The Profiler to get /proc/lock_stat data
+    """
     def __init__(self):
         self.report_ = ""
 
@@ -62,11 +81,15 @@ class LockstatProfiler:
             fobj.write('0\n')
 
     def start(self):
+        """Starts to monitor lock stat
+        """
         self.clear_lockstat()
 
     def stop(self):
+        """Stops to monitor lock stats and gather the results.
+        """
         with open('/proc/lock_stat', 'r') as fobj:
-            self.report = fobj.readlines()
+            self.report_ = fobj.read()
 
     def report(self):
         return self.report_
@@ -80,3 +103,25 @@ class LockstatProfiler:
                 fobj.write(self.report_)
         else:
             outfile.write(self.report_)
+
+
+class ProcStatProfiler(Profiler):
+    def __init__(self):
+        self.report_ = ""
+
+    def start(self):
+        with open('/proc/stat', 'r') as fobj:
+            self.before = fobj.readline()
+
+    def stop(self):
+        with open('/proc/stat', 'r') as fobj:
+            self.after = fobj.readline()
+
+    def report(self):
+        """Generates report.
+        """
+        before_fields = [int(x) for x in self.before.split()[1:]]
+        after_fields = [int(x) for x in self.after.split()[1:]]
+        return_fields = [str(x - y) for x, y in
+                         zip(after_fields, before_fields)]
+        return 'cpu ' + ' '.join(return_fields)

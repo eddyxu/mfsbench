@@ -10,6 +10,8 @@ import sys
 sys.path.append('..')
 import mfsbase
 import argparse
+from subprocess import call
+from multiprocessing import Process
 
 FILE_SYSTEMS = 'ext4,btrfs'
 WORKLOADS = 'varmail,fileserver,oltp,webserver,webproxy'
@@ -35,14 +37,55 @@ def prepare_disks(**kwargs):
         mfsbase.mount(disk_path, 'ramdisks/ram{}'.format(nram))
 
 
-def run_filebench():
+def filebench_task(workload, testdir, nfiles, nproc, nthread, iosize):
+    """Run filebench in a separate process.
+    """
+    conf = """
+load {}
+set $dir={}
+set $nfiles={}
+set $nprocesses={}
+set $nthreads={}
+set $iosize={}
+set $meanappendsize=4k
+run 60""".format(workload, testdir, nfiles, nproc, nthread, iosize)
+    print(conf)
+
+def run_filebench(fs, workload, **kwargs):
     """Run filebench results.
     """
-    lockstat = mfsbase.LockstatProfiler()
-    lockstat.start()
+    ndisks = kwargs.get('ndisks', 4)
+    ndirs = kwargs.get('ndirs', 1)
+    basedir = kwargs.get('basedir', 'ramdisks')
 
+    for disk in range(ndisks):
+        for testdir in range(ndirs):
+            testdir_path = os.path.join(basedir, 'ram{}'.format(disk),
+                                        'test{}'.format(testdir))
+            os.makedirs(testdir_path)
+
+    lockstat = mfsbase.LockstatProfiler()
+    procstat = mfsbase.ProcStatProfiler()
+    lockstat.start()
+    procstat.start()
+
+    tasks = []
+    for disk in range(ndisks):
+        for testdir in range(ndirs):
+            testdir_path = os.path.join(basedir, 'ram{}'.format(disk),
+                                        'test{}'.format(testdir))
+            task = Process(target=filebench_task,
+                           args=('varmail', testdir_path, 1000, 1, 1, '4k'))
+            task.start()
+            tasks.append(task)
+    for task in tasks:
+        task.join()
+
+    procstat.stop()
     lockstat.stop()
+    mfsbase.umount_all('ramdisks')
     print(lockstat.report())
+    print(procstat.report())
 
 
 def test_scalability(args):
@@ -51,7 +94,7 @@ def test_scalability(args):
 
 def test_numa(args):
     prepare_disks()
-    run_filebench()
+    run_filebench('ext4', 'varmail')
 
 
 def main():
