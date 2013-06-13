@@ -10,7 +10,7 @@ import sys
 sys.path.append('..')
 import mfsbase
 import argparse
-from subprocess import call
+from subprocess import call, Popen, PIPE
 from multiprocessing import Process
 
 FILE_SYSTEMS = 'ext4,btrfs'
@@ -48,8 +48,11 @@ set $nprocesses={}
 set $nthreads={}
 set $iosize={}
 set $meanappendsize=4k
-run 60""".format(workload, testdir, nfiles, nproc, nthread, iosize)
+run 10\n""".format(workload, testdir, nfiles, nproc, nthread, iosize)
     print(conf)
+    p = Popen('filebench', stdin=PIPE, stdout=PIPE, stderr=PIPE)
+    stdout, stderr = p.communicate(conf.encode('utf-8'))
+    print(stdout.decode('utf-8'))
 
 def run_filebench(fs, workload, **kwargs):
     """Run filebench results.
