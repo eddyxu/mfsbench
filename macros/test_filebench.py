@@ -10,7 +10,7 @@ import sys
 sys.path.append('..')
 import mfsbase
 import argparse
-from subprocess import call, Popen, PIPE
+from subprocess import Popen, PIPE
 from multiprocessing import Process
 
 FILE_SYSTEMS = 'ext4,btrfs'
@@ -49,10 +49,11 @@ set $nthreads={}
 set $iosize={}
 set $meanappendsize=4k
 run 10\n""".format(workload, testdir, nfiles, nproc, nthread, iosize)
-    print(conf)
     p = Popen('filebench', stdin=PIPE, stdout=PIPE, stderr=PIPE)
     stdout, stderr = p.communicate(conf.encode('utf-8'))
-    print(stdout.decode('utf-8'))
+    output = stdout.decode('utf-8')
+    print(output)
+
 
 def run_filebench(fs, workload, **kwargs):
     """Run filebench results.
@@ -60,6 +61,7 @@ def run_filebench(fs, workload, **kwargs):
     ndisks = kwargs.get('ndisks', 4)
     ndirs = kwargs.get('ndirs', 1)
     basedir = kwargs.get('basedir', 'ramdisks')
+    output = kwargs.get('output', 'filebench')
 
     for disk in range(ndisks):
         for testdir in range(ndirs):
@@ -69,6 +71,7 @@ def run_filebench(fs, workload, **kwargs):
 
     lockstat = mfsbase.LockstatProfiler()
     procstat = mfsbase.ProcStatProfiler()
+    perfstat = mfsbase.PerfProfiler()
     lockstat.start()
     procstat.start()
 
@@ -86,9 +89,13 @@ def run_filebench(fs, workload, **kwargs):
 
     procstat.stop()
     lockstat.stop()
+    procstat.dump(output + '_cpustat.txt')
+    lockstat.dump(output + '_lockstat.txt')
     mfsbase.umount_all('ramdisks')
-    print(lockstat.report())
-    print(procstat.report())
+
+
+def split_comma_fields(value):
+    return value.split(',')
 
 
 def test_scalability(args):
@@ -96,8 +103,12 @@ def test_scalability(args):
 
 
 def test_numa(args):
+    """Test how NUMA architecture affects the filebench performance.
+    """
     prepare_disks()
-    run_filebench('ext4', 'varmail')
+    for fs in args.formats.split(','):
+        print(fs)
+        run_filebench('ext4', 'varmail')
 
 
 def main():
@@ -114,6 +125,8 @@ def main():
                         default=1, help='set iteration, default: 1')
     parser.add_argument('-s', '--iosize', metavar='NUM', type=int,
                         default=1024, help='set IOSIZE (default: 1024)')
+    parser.add_argument('-r', '--run', metavar='NUM', type=int,
+                        default=60, help='set run time (default: 60)')
 
     subs = parser.add_subparsers()
 
@@ -129,6 +142,7 @@ def main():
         sys.exit(1)
 
     mfsbase.check_root_or_exit()
+    mfsbase.PerfProfiler.check_avail()
     args.func(args)
 
 

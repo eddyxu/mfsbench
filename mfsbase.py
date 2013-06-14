@@ -125,3 +125,34 @@ class ProcStatProfiler(Profiler):
         return_fields = [str(x - y) for x, y in
                          zip(after_fields, before_fields)]
         return 'cpu ' + ' '.join(return_fields)
+
+    def dump(self, outfile):
+        """Writes the report to the file.
+        """
+        if type(outfile) == str:
+            with open(outfile) as fobj:
+                fobj.write(self.report_)
+        else:
+            outfile.write(self.report_)
+
+
+
+class PerfProfiler(Profiler):
+    def __init__(self, perf='perf'):
+        self.perf = perf
+        self.check_avail()
+
+    @staticmethod
+    def check_avail(perf='perf'):
+        if call('which {}'.format(perf), shell=True) > 0:
+            raise RuntimeError('PerfProfiler can not find perf binary: \'{}\'.'
+                               .format(perf))
+
+    def start(self):
+        pass
+
+    def stop(self):
+        pass
+
+    def report(self):
+        pass
