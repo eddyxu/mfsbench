@@ -17,6 +17,7 @@ import re
 
 FILE_SYSTEMS = 'ext4,btrfs'
 WORKLOADS = 'varmail,fileserver,oltp,webserver,webproxy'
+PERF = 'perf'
 
 
 def prepare_disks(mntdir, ndisks, ndirs, **kwargs):
@@ -102,9 +103,10 @@ def start_filebench(**kwargs):
         counters['iops'] += rst['iops']
         counters['throughput'] += rst['throughput']
     print(counters)
+    return counters
 
 
-def run_filebench(fs, workload, **kwargs):
+def run_filebench(workload, **kwargs):
     """Run filebench results.
     """
     ndisks = kwargs.get('ndisks', 4)
@@ -114,26 +116,21 @@ def run_filebench(fs, workload, **kwargs):
 
     lockstat = mfsbase.LockstatProfiler()
     procstat = mfsbase.ProcStatProfiler()
-    perfstat = mfsbase.PerfProfiler()
+    perf = mfsbase.PerfProfiler(perf=PERF)
     lockstat.start()
     procstat.start()
 
-    tasks = []
-    for disk in range(ndisks):
-        for testdir in range(ndirs):
-            testdir_path = os.path.join(basedir, 'ram{}'.format(disk),
-                                        'test{}'.format(testdir))
-            task = Process(target=filebench_task,
-                           args=(workload, testdir_path, 1000, 1, 1, '4k'))
-            task.start()
-            tasks.append(task)
-    for task in tasks:
-        task.join()
+    cmd = '{} run --disks {} --dirs {} -b {}' \
+          .format(__file__, ndisks, ndirs, basedir)
+    perf.start(cmd)
 
     procstat.stop()
     lockstat.stop()
+    perf.stop()
+
     procstat.dump(output + '_cpustat.txt')
     lockstat.dump(output + '_lockstat.txt')
+
     mfsbase.umount_all('ramdisks')
 
 
@@ -148,10 +145,9 @@ def test_scalability(args):
 def test_numa(args):
     """Test how NUMA architecture affects the filebench performance.
     """
-    prepare_disks()
     for fs in args.formats.split(','):
-        print(fs)
-        run_filebench('ext4', 'varmail')
+        prepare_disks('ramdisks', 4, 1, fs=fs)
+        run_filebench('varmail')
 
 
 def main():
@@ -159,6 +155,7 @@ def main():
     """
     parser = argparse.ArgumentParser()
     parser.add_argument('-f', '--formats', metavar='FS,FS,..',
+                        default=FILE_SYSTEMS,
                         help='sets testing file systems (default: {}).'
                         .format(FILE_SYSTEMS))
     parser.add_argument('-w', '--workloads', metavar='NAME,NAME,..',
@@ -182,9 +179,9 @@ def main():
     parser_numa.set_defaults(func=test_numa)
 
     parser_run = subs.add_parser('run', help='Test run filebench directly.')
-    parser_run.add_argument('-n', '--ndisks', type=int, metavar='NUM',
+    parser_run.add_argument('-n', '--disks', type=int, metavar='NUM',
                             default=4, help='set the number of disks to run.')
-    parser_run.add_argument('-N', '--ndirs', type=int, metavar='NUM',
+    parser_run.add_argument('-N', '--dirs', type=int, metavar='NUM',
                             default=1,
                             help='set the number of directories in each disk.')
     parser_run.add_argument('-b', '--basedir', metavar='DIR',
@@ -201,6 +198,8 @@ def main():
         parser.print_help()
         sys.exit(1)
 
+    global PERF
+    PERF = args.perf
     mfsbase.check_root_or_exit()
     args.func(args)
 

@@ -65,7 +65,14 @@ class Profiler:
         pass
 
     def dump(self, outfile):
-        pass
+        """Dumps the report to the outfile.
+        @param outfile it can be a file object or a string file path.
+        """
+        if type(outfile) == str:
+            with open(outfile, 'w') as fobj:
+                fobj.write(self.report())
+        else:
+            outfile.write(self.report())
 
 
 class LockstatProfiler(Profiler):
@@ -94,16 +101,6 @@ class LockstatProfiler(Profiler):
     def report(self):
         return self.report_
 
-    def dump(self, outfile):
-        """Dumps the report to the outfile.
-        @param outfile it can be a file object or a string file path.
-        """
-        if type(outfile) == str:
-            with open(outfile) as fobj:
-                fobj.write(self.report_)
-        else:
-            outfile.write(self.report_)
-
 
 class ProcStatProfiler(Profiler):
     def __init__(self):
@@ -124,16 +121,7 @@ class ProcStatProfiler(Profiler):
         after_fields = [int(x) for x in self.after.split()[1:]]
         return_fields = [str(x - y) for x, y in
                          zip(after_fields, before_fields)]
-        return 'cpu ' + ' '.join(return_fields)
-
-    def dump(self, outfile):
-        """Writes the report to the file.
-        """
-        if type(outfile) == str:
-            with open(outfile) as fobj:
-                fobj.write(self.report_)
-        else:
-            outfile.write(self.report_)
+        return 'cpu ' + ' '.join(return_fields) + '\n'
 
 
 class PerfProfiler(Profiler):
@@ -147,7 +135,7 @@ class PerfProfiler(Profiler):
         @param perf the exective of 'perf'
         """
         self.perf = perf
-        self.check_avail()
+        self.check_avail(perf)
         if events:
             self.EVENTS = events
 
@@ -160,10 +148,11 @@ class PerfProfiler(Profiler):
     def start(self, cmd):
         """Start recording perf events.
         """
-        return call('{} record {} -a {}'.format(self.perf, self.EVENTS, cmd))
+        return call('{} record {} -a {}'.format(self.perf, self.EVENTS, cmd),
+                    shell=True)
 
     def stop(self):
-        p = Popen('{} report'.format(self.perf))
+        p = Popen('{} report'.format(self.perf), shell=True)
         self.report_ = p.communicate()[0]
 
     def report(self):
