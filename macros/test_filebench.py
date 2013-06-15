@@ -9,9 +9,10 @@ import os
 import sys
 sys.path.append('..')
 import mfsbase
-import argparse
+from collections import Counter
+from multiprocessing import Process, Queue
 from subprocess import Popen, PIPE
-from multiprocessing import Process
+import argparse
 import re
 
 FILE_SYSTEMS = 'ext4,btrfs'
@@ -39,7 +40,7 @@ def prepare_disks(mntdir, ndisks, ndirs, **kwargs):
             os.makedirs(dirpath)
 
 
-def filebench_task(workload, testdir, nfiles, nproc, nthread, iosize):
+def filebench_task(queue, workload, testdir, nfiles, nproc, nthread, iosize):
     """Run filebench in a separate process.
     """
     conf = """
@@ -61,7 +62,9 @@ run 10\n""".format(workload, testdir, nfiles, nproc, nthread, iosize)
         iops = float(fields[6])
         tp_num = re.search(r'\d+(\.\d+)?', fields[10]).group()
         throughput = float(tp_num)
-        print('IOPS: {} Throughput: {}'.format(iops, throughput))
+        ret = {'iops': iops, 'throughput': throughput}
+        queue.put(ret)
+        break
 
 
 def test_run(args):
@@ -81,17 +84,24 @@ def start_filebench(**kwargs):
     ndirs = kwargs.get('ndirs', 1)
     basedir = kwargs.get('basedir', 'ramdisks')
 
+    q = Queue()
     tasks = []
     for disk in range(ndisks):
         for testdir in range(ndirs):
             testdir_path = os.path.join(basedir, 'ram{}'.format(disk),
                                         'test{}'.format(testdir))
             task = Process(target=filebench_task,
-                           args=(workload, testdir_path, 1000, 1, 1, '4k'))
+                           args=(q, workload, testdir_path, 1000, 1, 1, '4k'))
             task.start()
             tasks.append(task)
     for task in tasks:
         task.join()
+    counters = Counter()
+    while not q.empty():
+        rst = q.get()
+        counters['iops'] += rst['iops']
+        counters['throughput'] += rst['throughput']
+    print(counters)
 
 
 def run_filebench(fs, workload, **kwargs):
