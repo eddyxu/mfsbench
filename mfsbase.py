@@ -7,7 +7,7 @@
 
 import os
 import sys
-from subprocess import call
+from subprocess import call, Popen
 
 
 def check_root_or_exit():
@@ -136,23 +136,33 @@ class ProcStatProfiler(Profiler):
             outfile.write(self.report_)
 
 
-
 class PerfProfiler(Profiler):
-    def __init__(self, perf='perf'):
+    EVENTS = '-e cycles,LLC-load-misses'
+
+    def __init__(self, perf='perf', events=''):
+        """Constructs a PerfProfiler
+
+        @param perf the exective of 'perf'
+        """
         self.perf = perf
         self.check_avail()
+        if events:
+            self.EVENTS = events
 
     @staticmethod
-    def check_avail(perf='perf'):
+    def check_avail(perf=''):
         if call('which {}'.format(perf), shell=True) > 0:
             raise RuntimeError('PerfProfiler can not find perf binary: \'{}\'.'
                                .format(perf))
 
-    def start(self):
-        pass
+    def start(self, cmd):
+        """Start recording perf events.
+        """
+        return call('{} record {} -a {}'.format(self.perf, self.EVENTS, cmd))
 
     def stop(self):
-        pass
+        p = Popen('{} report'.format(self.perf))
+        self.report_ = p.communicate()[0]
 
     def report(self):
-        pass
+        return self.report_

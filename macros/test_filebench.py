@@ -127,6 +127,8 @@ def main():
                         default=1024, help='set IOSIZE (default: 1024)')
     parser.add_argument('-r', '--run', metavar='NUM', type=int,
                         default=60, help='set run time (default: 60)')
+    parser.add_argument('--perf', default='perf',
+                        help='set the location of "perf"')
 
     subs = parser.add_subparsers()
 
