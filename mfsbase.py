@@ -127,7 +127,7 @@ class ProcStatProfiler(Profiler):
 class PerfProfiler(Profiler):
     """Use linux's perf utility to measure the PMU.
     """
-    EVENTS = '-e cycles,LLC-load-misses'
+    EVENTS = '-e cycles,cache-misses'
 
     def __init__(self, perf='perf', events=''):
         """Constructs a PerfProfiler

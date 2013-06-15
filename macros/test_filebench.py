@@ -147,7 +147,8 @@ def test_numa(args):
     """
     for fs in args.formats.split(','):
         prepare_disks('ramdisks', 4, 1, fs=fs)
-        run_filebench('varmail')
+        for wl in args.workloads.split(','):
+            run_filebench(wl)
 
 
 def main():
@@ -159,6 +160,7 @@ def main():
                         help='sets testing file systems (default: {}).'
                         .format(FILE_SYSTEMS))
     parser.add_argument('-w', '--workloads', metavar='NAME,NAME,..',
+                        default=WORKLOADS,
                         help='set workloads, separated by comma. (default: {})'
                         .format(WORKLOADS))
     parser.add_argument('-i', '--iteration', metavar='NUM', type=int,
