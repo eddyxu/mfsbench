@@ -69,10 +69,10 @@ class Profiler:
         @param outfile it can be a file object or a string file path.
         """
         if type(outfile) == str:
-            with open(outfile, 'w') as fobj:
-                fobj.write(self.report())
+            with open(outfile, 'w+') as fobj:
+                fobj.write(self.report() + '\n')
         else:
-            outfile.write(self.report())
+            outfile.write(self.report() + '\n')
 
 
 class LockstatProfiler(Profiler):

@@ -12,7 +12,9 @@ import mfsbase
 import set_cpus
 from collections import Counter
 from multiprocessing import Process, Queue
-from subprocess import Popen, PIPE, call
+from subprocess import Popen, PIPE
+from datetime import datetime
+import shutil
 import argparse
 import re
 
@@ -73,8 +75,8 @@ def test_run(args):
     """
     """
     start_filebench(workload=args.workload,
-                    ndisks=args.ndisks,
-                    ndirs=args.ndirs,
+                    ndisks=args.disks,
+                    ndirs=args.dirs,
                     basedir=args.basedir)
 
 
@@ -155,11 +157,22 @@ def test_numa(args):
     """
     CPU_CONFS = ['0-23', '0-11,24-35', '0-5,12-17,24-29,36-41',
                  '0-2,6-8,12-14,18-20,24-26,30-32,36-38,42-44']
+    ndisks = 4
+    ndirs = 1
+
+    # Prepare output disk
+    now = datetime.now()
+    output_dir = 'filebench_numa_' + now.strftime('%Y_%m_%d_%H_%M')
+    if os.path.exists(output_dir):
+        shutil.rmtrees(output_dir)
+    os.makedirs(output_dir)
     for fs in args.formats.split(','):
-        prepare_disks('ramdisks', 4, 1, fs=fs)
+        prepare_disks('ramdisks', ndisks, ndirs, fs=fs)
         for wl in args.workloads.split(','):
+            output_prefix = '{}/numa_{}_{}_{}_{}'.format(
+                output_dir, fs, wl, ndisks, ndirs)
             for cpus in CPU_CONFS:
-                if not run_filebench(wl, cpus=cpus):
+                if not run_filebench(wl, cpus=cpus, output=output_prefix):
                     print('Failed to execute run_filebench')
                     return False
 
