@@ -9,9 +9,10 @@ import os
 import sys
 sys.path.append('..')
 import mfsbase
+import set_cpus
 from collections import Counter
 from multiprocessing import Process, Queue
-from subprocess import Popen, PIPE
+from subprocess import Popen, PIPE, call
 import argparse
 import re
 
@@ -112,7 +113,11 @@ def run_filebench(workload, **kwargs):
     ndisks = kwargs.get('ndisks', 4)
     ndirs = kwargs.get('ndirs', 1)
     basedir = kwargs.get('basedir', 'ramdisks')
+    cpus = kwargs.get('cpus', '')
     output = kwargs.get('output', 'filebench')
+
+    if cpus:
+        set_cpus.set_cpus(cpus)
 
     lockstat = mfsbase.LockstatProfiler()
     procstat = mfsbase.ProcStatProfiler()
@@ -127,6 +132,9 @@ def run_filebench(workload, **kwargs):
     procstat.stop()
     lockstat.stop()
     perf.stop()
+
+    if cpus:
+        set_cpus.reset()
 
     procstat.dump(output + '_cpustat.txt')
     lockstat.dump(output + '_lockstat.txt')
@@ -145,10 +153,15 @@ def test_scalability(args):
 def test_numa(args):
     """Test how NUMA architecture affects the filebench performance.
     """
+    CPU_CONFS = ['0-23', '0-11,24-35', '0-5,12-17,24-29,36-41',
+                 '0-2,6-8,12-14,18-20,24-26,30-32,36-38,42-44']
     for fs in args.formats.split(','):
         prepare_disks('ramdisks', 4, 1, fs=fs)
         for wl in args.workloads.split(','):
-            run_filebench(wl)
+            for cpus in CPU_CONFS:
+                if not run_filebench(wl, cpus=cpus):
+                    print('Failed to execute run_filebench')
+                    return False
 
 
 def main():
@@ -203,8 +216,7 @@ def main():
     global PERF
     PERF = args.perf
     mfsbase.check_root_or_exit()
-    args.func(args)
-
+    return args.func(args)
 
 if __name__ == '__main__':
     main()

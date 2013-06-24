@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Lei Xu <eddyxu@gmail.com>
 
@@ -97,7 +97,7 @@ def set_cpu(core, online, **kwargs):
 
     online_path = '/sys/devices/system/cpu/cpu%d/online' % core
     if 'dry' in kwargs and kwargs['dry']:
-        print "DRY-RUN: write %d to %s" % (online, online_path)
+        print("DRY-RUN: write %d to %s" % (online, online_path))
         return
     os.system('echo %d > %s' % (online, online_path))
 
@@ -118,8 +118,8 @@ def list_cpus():
     online_cpu_string = online_cpu_string.strip()
     online_cpus = parse_cores(online_cpu_string)
     offline_cpus = POSSIBLE_CPUS - online_cpus
-    print "Online: CPU ", shorten_cores(online_cpus)
-    print "Offline: CPU ", shorten_cores(offline_cpus)
+    print("Online: CPU ", shorten_cores(online_cpus))
+    print("Offline: CPU ", shorten_cores(offline_cpus))
 
 
 def set_cpus(core_str, **kwargs):
@@ -149,7 +149,7 @@ def main():
     options, args = parser.parse_args()
 
     if os.getuid() != 0:
-        print >> sys.stderr, "Must run this script with root privilege."
+        print("Must run this script with root privilege.", file=sys.stderr)
         sys.exit(1)
 
     if options.reset:
