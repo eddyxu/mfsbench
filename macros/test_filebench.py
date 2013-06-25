@@ -164,7 +164,7 @@ def test_numa(args):
     now = datetime.now()
     output_dir = 'filebench_numa_' + now.strftime('%Y_%m_%d_%H_%M')
     if os.path.exists(output_dir):
-        shutil.rmtrees(output_dir)
+        shutil.rmtree(output_dir)
     os.makedirs(output_dir)
     for fs in args.formats.split(','):
         prepare_disks('ramdisks', ndisks, ndirs, fs=fs)
@@ -172,9 +172,10 @@ def test_numa(args):
             output_prefix = '{}/numa_{}_{}_{}_{}'.format(
                 output_dir, fs, wl, ndisks, ndirs)
             for cpus in CPU_CONFS:
-                if not run_filebench(wl, cpus=cpus, output=output_prefix):
-                    print('Failed to execute run_filebench')
-                    return False
+                for i in range(args.iteration):
+                    if not run_filebench(wl, cpus=cpus, output=output_prefix):
+                        print('Failed to execute run_filebench')
+                        return False
 
 
 def main():
