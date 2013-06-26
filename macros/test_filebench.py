@@ -77,7 +77,8 @@ def test_run(args):
     start_filebench(workload=args.workload,
                     ndisks=args.disks,
                     ndirs=args.dirs,
-                    basedir=args.basedir)
+                    basedir=args.basedir,
+                    output=args.output)
 
 
 def start_filebench(**kwargs):
@@ -87,6 +88,7 @@ def start_filebench(**kwargs):
     ndisks = kwargs.get('ndisks', 4)
     ndirs = kwargs.get('ndirs', 1)
     basedir = kwargs.get('basedir', 'ramdisks')
+    output = kwargs.get('output', None)
 
     q = Queue()
     tasks = []
@@ -106,6 +108,10 @@ def start_filebench(**kwargs):
         counters['iops'] += rst['iops']
         counters['throughput'] += rst['throughput']
     print(counters)
+    if output:
+        with open(output, 'w+') as fobj:
+            fobj.write('{} {}\n'.format(counters['iops'],
+                                        counters['throughput']))
     return counters
 
 
@@ -121,27 +127,30 @@ def run_filebench(workload, **kwargs):
     if cpus:
         set_cpus.set_cpus(cpus)
 
-    lockstat = mfsbase.LockstatProfiler()
+    #lockstat = mfsbase.LockstatProfiler()
     procstat = mfsbase.ProcStatProfiler()
     perf = mfsbase.PerfProfiler(perf=PERF)
-    lockstat.start()
+    #lockstat.start()
     procstat.start()
 
-    cmd = '{} run --disks {} --dirs {} -b {}' \
-          .format(__file__, ndisks, ndirs, basedir)
+    result_file = output + '_results.txt'
+    cmd = '{} run --disks {} --dirs {} -b {} -o {}' \
+          .format(__file__, ndisks, ndirs, basedir, result_file)
     perf.start(cmd)
 
     procstat.stop()
-    lockstat.stop()
+    #lockstat.stop()
     perf.stop()
 
     if cpus:
         set_cpus.reset()
 
     procstat.dump(output + '_cpustat.txt')
-    lockstat.dump(output + '_lockstat.txt')
+    #lockstat.dump(output + '_lockstat.txt')
+    perf.dump(output + '_perf.txt')
 
     mfsbase.umount_all('ramdisks')
+    return True
 
 
 def split_comma_fields(value):
@@ -169,10 +178,10 @@ def test_numa(args):
     for fs in args.formats.split(','):
         prepare_disks('ramdisks', ndisks, ndirs, fs=fs)
         for wl in args.workloads.split(','):
-            output_prefix = '{}/numa_{}_{}_{}_{}'.format(
-                output_dir, fs, wl, ndisks, ndirs)
             for cpus in CPU_CONFS:
                 for i in range(args.iteration):
+                    output_prefix = '{}/numa_{}_{}_{}_{}_{}'.format(
+                        output_dir, fs, wl, ndisks, ndirs, i)
                     if not run_filebench(wl, cpus=cpus, output=output_prefix):
                         print('Failed to execute run_filebench')
                         return False
@@ -220,6 +229,8 @@ def main():
     parser_run.add_argument('-w', '--workload', metavar='STR',
                             default='varmail',
                             help='set workload to run.')
+    parser_run.add_argument('-o', '--output', metavar='FILE', default=None,
+                            help='set the output file.')
     parser_run.set_defaults(func=test_run)
 
     args = parser.parse_args()
