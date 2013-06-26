@@ -7,7 +7,7 @@
 
 import os
 import sys
-from subprocess import call, Popen
+from subprocess import call, check_output
 
 
 def check_root_or_exit():
@@ -127,7 +127,8 @@ class ProcStatProfiler(Profiler):
 class PerfProfiler(Profiler):
     """Use linux's perf utility to measure the PMU.
     """
-    EVENTS = '-e cycles,cache-misses'
+    #EVENTS = '-e cycles,cache-misses'
+    EVENTS = '-e cycles'
 
     def __init__(self, perf='perf', events=''):
         """Constructs a PerfProfiler
@@ -152,8 +153,8 @@ class PerfProfiler(Profiler):
                     shell=True)
 
     def stop(self):
-        p = Popen('{} report'.format(self.perf), shell=True)
-        self.report_ = p.communicate()[0]
+        self.report_ = check_output('{} report --stdio'.format(self.perf),
+                                    shell=True).decode('utf-8')
 
     def report(self):
         return self.report_
