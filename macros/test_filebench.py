@@ -72,7 +72,7 @@ run 10\n""".format(workload, testdir, nfiles, nproc, nthread, iosize)
 
 
 def test_run(args):
-    """
+    """Run a single filebench test.
     """
     start_filebench(workload=args.workload,
                     ndisks=args.disks,
@@ -159,7 +159,28 @@ def split_comma_fields(value):
 
 
 def test_scalability(args):
-    prepare_disks()
+    ndisks = 1
+    ndirs = 1
+
+    now = datetime.now()
+    output_dir = 'filebench_scale_' + now.strftime('%Y_%m_%d_%H_%M')
+    if os.path.exists(output_dir):
+        shutil.rmtree(output_dir)
+    os.makedirs(output_dir)
+
+    for fs in args.formats.split(','):
+        for wl in args.workloads.split(','):
+            for nproc in range(4, 96, 12):
+                for i in range(args.iteration):
+                    print('Run scalability test')
+                    output_prefix = '{}/scale_{}_{}_{}_{}_{}_{}'.format(
+                        output_dir, fs, wl, ndisks, ndirs, nproc, i)
+                    prepare_disks('ramdisks', ndisks, ndirs, fs=fs)
+                    if not run_filebench(wl, ndisks=ndisks, ndirs=ndirs,
+                                         nproc=nproc, output=output_prefix):
+                        print('Failed to execute run_filebench')
+                        return False
+    return True
 
 
 def test_numa(args):
@@ -188,6 +209,7 @@ def test_numa(args):
                     if not run_filebench(wl, cpus=cpus, output=output_prefix):
                         print('Failed to execute run_filebench')
                         return False
+    return True
 
 
 def main():
@@ -233,6 +255,9 @@ def main():
     parser_run.add_argument('-N', '--dirs', type=int, metavar='NUM',
                             default=1,
                             help='set the number of directories in each disk.')
+    parser_run.add_argument('-p', '--process', type=int, metavar='NUM',
+                            default=0,
+                            help='set the number of processes.')
     parser_run.add_argument(
         '-b', '--basedir', metavar='DIR', default='ramdisks',
         help='set base dir to mount disks and run the test.')
