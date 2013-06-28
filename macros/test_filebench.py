@@ -122,6 +122,7 @@ def run_filebench(workload, **kwargs):
     ndirs = kwargs.get('ndirs', 1)
     basedir = kwargs.get('basedir', 'ramdisks')
     cpus = kwargs.get('cpus', '')
+    events = kwargs.get('events', 'cycles')
     output = kwargs.get('output', 'filebench')
 
     if cpus:
@@ -129,7 +130,7 @@ def run_filebench(workload, **kwargs):
 
     #lockstat = mfsbase.LockstatProfiler()
     procstat = mfsbase.ProcStatProfiler()
-    perf = mfsbase.PerfProfiler(perf=PERF)
+    perf = mfsbase.PerfProfiler(perf=PERF, events=events)
     #lockstat.start()
     procstat.start()
 
@@ -180,8 +181,10 @@ def test_numa(args):
         for wl in args.workloads.split(','):
             for cpus in CPU_CONFS:
                 for i in range(args.iteration):
-                    output_prefix = '{}/numa_{}_{}_{}_{}_{}'.format(
-                        output_dir, fs, wl, ndisks, ndirs, i)
+                    output_prefix = '{}/numa_{}_{}_{}_{}_{}_{}'.format(
+                        output_dir, fs, wl, ndisks, ndirs, cpus, i)
+                    print('Run NUMA test on CPUs {} for iteration {}'
+                          .format(cpus, i))
                     if not run_filebench(wl, cpus=cpus, output=output_prefix):
                         print('Failed to execute run_filebench')
                         return False
@@ -207,6 +210,9 @@ def main():
                         default=60, help='set run time (default: 60)')
     parser.add_argument('--perf', default='perf',
                         help='set the location of "perf"')
+    parser.add_argument('-e', '--events', default='cycles', metavar='EVT,..',
+                        help='set the events to monitor by perf '
+                             '(default: cycles)')
 
     subs = parser.add_subparsers()
 

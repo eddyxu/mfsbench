@@ -138,7 +138,7 @@ class PerfProfiler(Profiler):
         self.perf = perf
         self.check_avail(perf)
         if events:
-            self.EVENTS = events
+            self.EVENTS = '-e ' + events
 
     @staticmethod
     def check_avail(perf=''):
