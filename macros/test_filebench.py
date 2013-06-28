@@ -167,8 +167,8 @@ def test_numa(args):
     """
     CPU_CONFS = ['0-23', '0-11,24-35', '0-5,12-17,24-29,36-41',
                  '0-2,6-8,12-14,18-20,24-26,30-32,36-38,42-44']
-    ndisks = 4
-    ndirs = 1
+    ndisks = args.disks
+    ndirs = args.dirs
 
     # Prepare output disk
     now = datetime.now()
@@ -177,7 +177,6 @@ def test_numa(args):
         shutil.rmtree(output_dir)
     os.makedirs(output_dir)
     for fs in args.formats.split(','):
-        prepare_disks('ramdisks', ndisks, ndirs, fs=fs)
         for wl in args.workloads.split(','):
             for cpus in CPU_CONFS:
                 for i in range(args.iteration):
@@ -185,6 +184,7 @@ def test_numa(args):
                         output_dir, fs, wl, ndisks, ndirs, cpus, i)
                     print('Run NUMA test on CPUs {} for iteration {}'
                           .format(cpus, i))
+                    prepare_disks('ramdisks', ndisks, ndirs, fs=fs)
                     if not run_filebench(wl, cpus=cpus, output=output_prefix):
                         print('Failed to execute run_filebench')
                         return False
@@ -220,6 +220,11 @@ def main():
     parser_scale.set_defaults(func=test_scalability)
 
     parser_numa = subs.add_parser('numa', help='Test NUMA architecture')
+    parser_numa.add_argument('-n', '--disks', type=int, metavar='NUM',
+                             default=4, help='set the number of disks to run.')
+    parser_numa.add_argument(
+        '-N', '--dirs', type=int, metavar='NUM', default=1,
+        help='set the number of directories in each disk.')
     parser_numa.set_defaults(func=test_numa)
 
     parser_run = subs.add_parser('run', help='Test run filebench directly.')
@@ -228,13 +233,12 @@ def main():
     parser_run.add_argument('-N', '--dirs', type=int, metavar='NUM',
                             default=1,
                             help='set the number of directories in each disk.')
-    parser_run.add_argument('-b', '--basedir', metavar='DIR',
-                            default='ramdisks',
-                            help='set base dir to mount disks and run '
-                                 'the test.')
-    parser_run.add_argument('-w', '--workload', metavar='STR',
-                            default='varmail',
-                            help='set workload to run.')
+    parser_run.add_argument(
+        '-b', '--basedir', metavar='DIR', default='ramdisks',
+        help='set base dir to mount disks and run the test.')
+    parser_run.add_argument(
+        '-w', '--workload', metavar='STR', default='varmail',
+        help='set workload to run.')
     parser_run.add_argument('-o', '--output', metavar='FILE', default=None,
                             help='set the output file.')
     parser_run.set_defaults(func=test_run)
