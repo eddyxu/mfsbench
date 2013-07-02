@@ -1,0 +1,21 @@
+#!/bin/sh -
+#
+# Re-generate ./configure and Makefile.in files.
+#
+# Copyright 2013 (c) Lei Xu <eddyxu@gmail.com>
+
+autoheader
+if [ -d /usr/local/share/aclocal ]; then
+	aclocal -I m4 -I /usr/local/share/aclocal --install
+else
+	aclocal -I m4 --install
+fi
+
+autoconf
+
+automake --foreign --add-missing --force-missing --copy
+
+git submodule init
+git submodule update
+cd lib/vobla
+./bootstrap && ./configure && make

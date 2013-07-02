@@ -159,6 +159,8 @@ def split_comma_fields(value):
 
 
 def test_scalability(args):
+    """Test scalability of manycore
+    """
     ndisks = 1
     ndirs = 1
 
