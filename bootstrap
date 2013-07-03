@@ -4,6 +4,7 @@
 #
 # Copyright 2013 (c) Lei Xu <eddyxu@gmail.com>
 
+libtoolize
 autoheader
 if [ -d /usr/local/share/aclocal ]; then
 	aclocal -I m4 -I /usr/local/share/aclocal --install
