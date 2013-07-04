@@ -5,6 +5,9 @@
 import argparse
 import os
 import matplotlib.pyplot as plt
+import sys
+sys.path.append('../pyro')
+from pyro import analysis
 
 
 def parse_filename(filename):
@@ -16,19 +19,30 @@ def plot_numa_result(args):
     """Plot NUMA results.
     """
     files = os.listdir(args.dir)
+    fb_result = analysis.Result()  # filebench result
     for filename in files:
         fields = parse_filename(filename)
         test = fields[0]
         fs = fields[1]
         workload = fields[2]
         cpus = fields[5]
-        iteration = int(fields[6])
+        #iteration = int(fields[6])
         result = fields[7]
-        print(test, fs, workload, cpus, iteration, result)
+        #print(test, fs, workload, cpus, iteration, result)
         if result == 'results.txt':
             with open(os.path.join(args.dir, filename)) as fobj:
                 line = fobj.readline()
-            print(line)
+            iops, throughput = map(float, line.split())
+            #print(iops, throughput)
+            if not fb_result[fs, workload, cpus]:
+                fb_result[fs, workload, cpus] = {"iops": [], "throughput": []}
+            fb_result[fs, workload, cpus, "iops"].append(iops)
+            fb_result[fs, workload, cpus, "throughput"].append(throughput)
+    print(fb_result)
+
+    output_prefix = args.dir
+    plt.figure()
+    plt.savefig(output_prefix + "_iops.pdf")
 
 
 def main():
