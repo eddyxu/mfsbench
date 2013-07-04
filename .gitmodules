@@ -1,3 +1,7 @@
 [submodule "lib/vobla"]
 	path = lib/vobla
 	url = git@github.com:vsfs/vobla.git
+	ignore = dirty
+[submodule "pyro"]
+	path = pyro
+	url = git@github.com:eddyxu/pyro.git
