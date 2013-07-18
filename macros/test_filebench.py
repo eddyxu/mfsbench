@@ -55,7 +55,7 @@ set $nprocesses={}
 set $nthreads={}
 set $iosize={}
 set $meanappendsize=4k
-run 10\n""".format(workload, testdir, nfiles, nproc, nthread, iosize)
+run 60\n""".format(workload, testdir, nfiles, nproc, nthread, iosize)
     p = Popen('filebench', stdin=PIPE, stdout=PIPE, stderr=PIPE)
     stdout, stderr = p.communicate(conf.encode('utf-8'))
     output = stdout.decode('utf-8')

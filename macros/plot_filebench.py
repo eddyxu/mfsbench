@@ -15,6 +15,15 @@ def parse_filename(filename):
     return fields
 
 
+def read_result_file(filepath):
+    """Read the result file and return the value.
+    @return (iops, throughput)
+    """
+    with open(filepath) as fobj:
+        line = fobj.readline()
+    return map(float, line.split())
+
+
 def plot_numa_result(args):
     """Plot NUMA results.
     """
@@ -39,10 +48,51 @@ def plot_numa_result(args):
             fb_result[fs, workload, cpus, "iops"].append(iops)
             fb_result[fs, workload, cpus, "throughput"].append(throughput)
     print(fb_result)
+    print(fb_result.keys())
 
     output_prefix = args.dir
     plt.figure()
+    for fs in fb_result:
+        print(fs, fb_result[fs])
     plt.savefig(output_prefix + "_iops.pdf")
+
+
+def plot_scale_result(args):
+    files = os.listdir(args.dir)
+    fb_result = analysis.Result()
+    for filename in files:
+        fields = parse_filename(filename)
+        fs = fields[1]
+        workload = fields[2]
+        nproc = int(fields[5])
+        result = fields[7]
+        if result == 'results.txt':
+            iops, throughput = read_result_file(
+                os.path.join(args.dir, filename))
+            if not fb_result[fs, workload, nproc]:
+                fb_result[fs, workload, nproc] = {"iops": [], "throughput": []}
+            fb_result[fs, workload, nproc, "iops"].append(iops)
+            fb_result[fs, workload, nproc, "throughput"].append(throughput)
+
+    output_prefix = os.path.abspath(args.dir)
+    plt.figure()
+    for fs in fb_result:
+        for wl in fb_result[fs]:
+            processes = sorted(fb_result[fs, wl].keys())
+            iops = []
+            for proc in processes:
+                iops.append(fb_result[fs, wl, proc, "iops"])
+            print(fb_result[fs, wl])
+            plt.plot(processes, iops, label=wl)
+
+    plt.ylim(0)
+    plt.legend()
+    plt.savefig(output_prefix + '_iops.pdf')
+
+
+
+def plot_perf_result(args):
+    pass
 
 
 def main():
@@ -55,7 +105,11 @@ def main():
                         help='Sets the output file.')
     args = parser.parse_args()
 
-    plot_numa_result(args)
+    fields = parse_filename(args.dir)
+    if fields[1] == 'numa':
+        plot_numa_result(args)
+    elif fields[1] == 'scale':
+        plot_scale_result(args)
 
 
 if __name__ == '__main__':
