@@ -33,6 +33,7 @@ def prepare_disks(mntdir, ndisks, ndirs, **kwargs):
     mfsbase.umount_all(mntdir)
 
     for nram in range(ndisks):
+
         disk_path = '/dev/ram{}'.format(nram)
         mntpnt = os.path.join(mntdir, 'ram{}'.format(nram))
         if not os.path.exists(mntpnt):
@@ -44,9 +45,11 @@ def prepare_disks(mntdir, ndisks, ndirs, **kwargs):
             os.makedirs(dirpath)
 
 
-def filebench_task(queue, workload, testdir, nfiles, nproc, nthread, iosize):
+def filebench_task(queue, workload, testdir, nfiles, nproc, nthread, iosize,
+                   **kwargs):
     """Run filebench in a separate process.
     """
+    runtime = kwargs.get('runtime', 60)
     conf = """
 load {}
 set $dir={}
@@ -55,7 +58,7 @@ set $nprocesses={}
 set $nthreads={}
 set $iosize={}
 set $meanappendsize=4k
-run 60\n""".format(workload, testdir, nfiles, nproc, nthread, iosize)
+run ${}\n""".format(workload, testdir, nfiles, nproc, nthread, iosize, runtime)
     p = Popen('filebench', stdin=PIPE, stdout=PIPE, stderr=PIPE)
     stdout, stderr = p.communicate(conf.encode('utf-8'))
     output = stdout.decode('utf-8')
@@ -179,7 +182,7 @@ def test_scalability(args):
                         output_dir, fs, wl, ndisks, ndirs, nproc, i)
                     prepare_disks('ramdisks', ndisks, ndirs, fs=fs)
                     if not run_filebench(wl, ndisks=ndisks, ndirs=ndirs,
-                                         nproc=nproc, output=output_prefix):
+                                         nthread=nproc, output=output_prefix):
                         print('Failed to execute run_filebench')
                         return False
     return True

@@ -87,8 +87,10 @@ def plot_scale_result(args):
 
     plt.ylim(0)
     plt.legend()
+    plt.xlabel('Threads')
+    plt.ylabel('IOPS')
+    plt.title('Filebench Scalability Test')
     plt.savefig(output_prefix + '_iops.pdf')
-
 
 
 def plot_perf_result(args):
