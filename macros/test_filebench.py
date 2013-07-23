@@ -80,6 +80,8 @@ def test_run(args):
     start_filebench(workload=args.workload,
                     ndisks=args.disks,
                     ndirs=args.dirs,
+                    nprocs=args.process,
+                    nthreads=args.thread,
                     basedir=args.basedir,
                     output=args.output)
 
@@ -90,6 +92,8 @@ def start_filebench(**kwargs):
     workload = kwargs.get('workload', 'fileserver')
     ndisks = kwargs.get('ndisks', 4)
     ndirs = kwargs.get('ndirs', 1)
+    nprocs = kwargs.get('nprocs', 1)
+    nthreads = kwargs.get('nthreads', 1)
     basedir = kwargs.get('basedir', 'ramdisks')
     output = kwargs.get('output', None)
 
@@ -100,7 +104,8 @@ def start_filebench(**kwargs):
             testdir_path = os.path.join(basedir, 'ram{}'.format(disk),
                                         'test{}'.format(testdir))
             task = Process(target=filebench_task,
-                           args=(q, workload, testdir_path, 1000, 1, 1, '4k'))
+                           args=(q, workload, testdir_path, 1000, nprocs,
+                                 nthreads, '4k'))
             task.start()
             tasks.append(task)
     for task in tasks:
@@ -126,31 +131,34 @@ def run_filebench(workload, **kwargs):
     basedir = kwargs.get('basedir', 'ramdisks')
     cpus = kwargs.get('cpus', '')
     events = kwargs.get('events', 'cycles')
+    nprocs = kwargs.get('nprocs', 1)
+    nthreads = kwargs.get('nthreads', 1)
     output = kwargs.get('output', 'filebench')
 
     if cpus:
         set_cpus.set_cpus(cpus)
 
-    #lockstat = mfsbase.LockstatProfiler()
+    lockstat = mfsbase.LockstatProfiler()
     procstat = mfsbase.ProcStatProfiler()
     perf = mfsbase.PerfProfiler(perf=PERF, events=events)
-    #lockstat.start()
+    lockstat.start()
     procstat.start()
 
     result_file = output + '_results.txt'
-    cmd = '{} run --disks {} --dirs {} -b {} -o {}' \
-          .format(__file__, ndisks, ndirs, basedir, result_file)
+    cmd = '{} run --disks {} --dirs {} -b {} -p {} -t {} -o {}' \
+          .format(__file__, ndisks, ndirs, basedir, nprocs, nthreads,
+                  result_file)
+    print(cmd)
     perf.start(cmd)
-
     procstat.stop()
-    #lockstat.stop()
+    lockstat.stop()
     perf.stop()
 
     if cpus:
         set_cpus.reset()
 
     procstat.dump(output + '_cpustat.txt')
-    #lockstat.dump(output + '_lockstat.txt')
+    lockstat.dump(output + '_lockstat.txt')
     perf.dump(output + '_perf.txt')
 
     mfsbase.umount_all('ramdisks')
@@ -182,7 +190,7 @@ def test_scalability(args):
                         output_dir, fs, wl, ndisks, ndirs, nproc, i)
                     prepare_disks('ramdisks', ndisks, ndirs, fs=fs)
                     if not run_filebench(wl, ndisks=ndisks, ndirs=ndirs,
-                                         nthread=nproc, output=output_prefix):
+                                         nthreads=nproc, output=output_prefix):
                         print('Failed to execute run_filebench')
                         return False
     return True
@@ -261,8 +269,9 @@ def main():
                             default=1,
                             help='set the number of directories in each disk.')
     parser_run.add_argument('-p', '--process', type=int, metavar='NUM',
-                            default=0,
-                            help='set the number of processes.')
+                            default=0, help='set the number of processes.')
+    parser_run.add_argument('-t', '--thread', type=int, metavar='NUM',
+                            default=1, help='set the number of threads.')
     parser_run.add_argument(
         '-b', '--basedir', metavar='DIR', default='ramdisks',
         help='set base dir to mount disks and run the test.')
