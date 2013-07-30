@@ -93,7 +93,7 @@ def plot_scale_result(args):
     plt.xlabel('Threads')
     plt.ylabel('IOPS')
     plt.title('Filebench Scalability Test')
-    plt.savefig(output_prefix + '_iops' + args.ext)
+    plt.savefig(output_prefix + '_iops.' + args.ext)
 
 
     # Plot Throughput results
@@ -112,7 +112,7 @@ def plot_scale_result(args):
     plt.xlabel('Threads')
     plt.ylabel('Throughput (MB/s)')
     plt.title('Filebench Scalability Test')
-    plt.savefig(output_prefix + '_throughput' + args.ext)
+    plt.savefig(output_prefix + '_throughput.' + args.ext)
 
 
 
@@ -128,8 +128,8 @@ def main():
                         help='Sets the filebench result directory.')
     parser.add_argument('-o', '--output', metavar='FILE', default=None,
                         help='Sets the output file.')
-    parser.add_argument('-e', '--ext', metavar='EXT', default='.pdf',
-                        help='Sets the extension of output file (.pdf)')
+    parser.add_argument('-e', '--ext', metavar='EXT', default='pdf',
+                        help='Sets the extension of output file (pdf)')
     args = parser.parse_args()
 
     fields = parse_filename(args.dir)
