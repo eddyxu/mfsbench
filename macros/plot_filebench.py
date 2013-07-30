@@ -7,7 +7,7 @@ import os
 import matplotlib.pyplot as plt
 import sys
 sys.path.append('../pyro')
-from pyro import analysis
+from pyro import analysis, perftest
 
 
 def parse_filename(filename):
@@ -58,6 +58,8 @@ def plot_numa_result(args):
 
 
 def plot_scale_result(args):
+    """Plots performance results for scalability test.
+    """
     files = os.listdir(args.dir)
     fb_result = analysis.Result()
     for filename in files:
@@ -74,6 +76,7 @@ def plot_scale_result(args):
             fb_result[fs, workload, nproc, "iops"].append(iops)
             fb_result[fs, workload, nproc, "throughput"].append(throughput)
 
+    # Plot IOPS results
     output_prefix = os.path.abspath(args.dir)
     plt.figure()
     for fs in fb_result:
@@ -83,14 +86,34 @@ def plot_scale_result(args):
             for proc in processes:
                 iops.append(fb_result[fs, wl, proc, "iops"])
             print(fb_result[fs, wl])
-            plt.plot(processes, iops, label=wl)
+            plt.plot(processes, iops, label='%s (%s)' % (wl, fs))
 
     plt.ylim(0)
     plt.legend()
     plt.xlabel('Threads')
     plt.ylabel('IOPS')
     plt.title('Filebench Scalability Test')
-    plt.savefig(output_prefix + '_iops.pdf')
+    plt.savefig(output_prefix + '_iops' + args.ext)
+
+
+    # Plot Throughput results
+    output_prefix = os.path.abspath(args.dir)
+    plt.figure()
+    for fs in fb_result:
+        for wl in fb_result[fs]:
+            processes = sorted(fb_result[fs, wl].keys())
+            iops = []
+            for proc in processes:
+                iops.append(fb_result[fs, wl, proc, "throughput"])
+            plt.plot(processes, iops, label='%s (%s)' % (wl, fs))
+
+    plt.ylim(0)
+    plt.legend()
+    plt.xlabel('Threads')
+    plt.ylabel('Throughput (MB/s)')
+    plt.title('Filebench Scalability Test')
+    plt.savefig(output_prefix + '_throughput' + args.ext)
+
 
 
 def plot_perf_result(args):
@@ -105,6 +128,8 @@ def main():
                         help='Sets the filebench result directory.')
     parser.add_argument('-o', '--output', metavar='FILE', default=None,
                         help='Sets the output file.')
+    parser.add_argument('-e', '--ext', metavar='EXT', default='.pdf',
+                        help='Sets the extension of output file (.pdf)')
     args = parser.parse_args()
 
     fields = parse_filename(args.dir)
