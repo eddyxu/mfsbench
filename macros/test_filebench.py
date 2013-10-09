@@ -190,7 +190,8 @@ def test_scalability(args):
                         output_dir, fs, wl, ndisks, ndirs, nproc, i)
                     prepare_disks('ramdisks', ndisks, ndirs, fs=fs)
                     if not run_filebench(wl, ndisks=ndisks, ndirs=ndirs,
-                                         nthreads=nproc, output=output_prefix):
+                                         nthreads=nproc, output=output_prefix,
+                                         events=args.events):
                         print('Failed to execute run_filebench')
                         return False
     return True
