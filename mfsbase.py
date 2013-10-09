@@ -130,23 +130,29 @@ class PerfProfiler(Profiler):
     EVENTS = '-e cycles,cache-misses,LLC-load-misses'
     #EVENTS = '-e cycles'
 
-    def __init__(self, perf='perf', events='', **kwargs):
+    def __init__(self, perf='perf', **kwargs):
         """Constructs a PerfProfiler
 
         @param perf the exective of 'perf'
+
+        Optional parameters:
+        @param events the events to be recorded.
+        @param vmlinux the kernel image to find symbols.
+        @param kallsyms the kallsyms file.
         """
         self.perf = perf
         self.check_avail(perf)
         self.vmlinux = kwargs.get('vmlinux', '')
         self.kallsyms = kwargs.get('kallsyms', '')
-        if events:
-            self.EVENTS = '-e ' + events
+        if kwargs.get('events', ''):
+            self.EVENTS = '-e ' + kwargs.get('events')
 
     @staticmethod
     def check_avail(perf=''):
         if call('which {}'.format(perf), shell=True) > 0:
             raise RuntimeError('PerfProfiler can not find perf binary: \'{}\'.'
                                .format(perf))
+
 
     def start(self, cmd):
         """Start recording perf events.

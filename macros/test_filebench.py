@@ -38,7 +38,8 @@ def prepare_disks(mntdir, ndisks, ndirs, **kwargs):
         mntpnt = os.path.join(mntdir, 'ram{}'.format(nram))
         if not os.path.exists(mntpnt):
             os.makedirs(mntpnt)
-        mfsbase.mount(disk_path, os.path.join(mntdir, 'ram{}'.format(nram)))
+        mfsbase.mount(disk_path, os.path.join(mntdir, 'ram{}'.format(nram)),
+                      format=fs)
         for dir_num in range(ndirs):
             dirpath = os.path.join(mntdir, 'ram{}'.format(nram),
                                    'test{}'.format(dir_num))
@@ -140,7 +141,7 @@ def run_filebench(workload, **kwargs):
 
     lockstat = mfsbase.LockstatProfiler()
     procstat = mfsbase.ProcStatProfiler()
-    perf = mfsbase.PerfProfiler(perf=PERF, events=events)
+    perf = mfsbase.PerfProfiler(perf=PERF, **kwargs)
     lockstat.start()
     procstat.start()
 
