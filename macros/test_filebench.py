@@ -249,6 +249,11 @@ def main():
     parser.add_argument('-e', '--events', default='cycles', metavar='EVT,..',
                         help='set the events to monitor by perf '
                              '(default: cycles)')
+    parser.add_argument('-k', '--vmlinux', default=None, metavar='FILE',
+                        help='set vmlinux pathname for perf (optional)')
+    parser.add_argument('-S', '--kallsyms', default=None, metavar='FILE',
+                        help='set kallsyms pathname for perf (optional)')
+
 
     subs = parser.add_subparsers()
 

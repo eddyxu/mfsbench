@@ -130,13 +130,15 @@ class PerfProfiler(Profiler):
     EVENTS = '-e cycles,cache-misses,LLC-load-misses'
     #EVENTS = '-e cycles'
 
-    def __init__(self, perf='perf', events=''):
+    def __init__(self, perf='perf', events='', **kwargs):
         """Constructs a PerfProfiler
 
         @param perf the exective of 'perf'
         """
         self.perf = perf
         self.check_avail(perf)
+        self.vmlinux = kwargs.get('vmlinux', '')
+        self.kallsyms = kwargs.get('kallsyms', '')
         if events:
             self.EVENTS = '-e ' + events
 
@@ -154,8 +156,16 @@ class PerfProfiler(Profiler):
                     shell=True)
 
     def stop(self):
-        self.report_ = check_output('{} report --stdio'.format(self.perf),
-                                    shell=True).decode('utf-8')
+        """
+        """
+        options = ''
+        if self.vmlinux:
+            options += ' -k {}'.format(self.vmlinux)
+        if self.kallsyms:
+            options += ' --kallsyms={}'.format(self.kallsyms)
+        self.report_ = check_output(
+            '{} report {} --stdio'.format(self.perf, options),
+            shell=True).decode('utf-8')
 
     def report(self):
         return self.report_
