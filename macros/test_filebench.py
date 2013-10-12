@@ -131,7 +131,6 @@ def run_filebench(workload, **kwargs):
     ndirs = kwargs.get('ndirs', 1)
     basedir = kwargs.get('basedir', 'ramdisks')
     cpus = kwargs.get('cpus', '')
-    events = kwargs.get('events', 'cycles')
     nprocs = kwargs.get('nprocs', 1)
     nthreads = kwargs.get('nthreads', 1)
     output = kwargs.get('output', 'filebench')
@@ -192,7 +191,9 @@ def test_scalability(args):
                     prepare_disks('ramdisks', ndisks, ndirs, fs=fs)
                     if not run_filebench(wl, ndisks=ndisks, ndirs=ndirs,
                                          nthreads=nproc, output=output_prefix,
-                                         events=args.events):
+                                         events=args.events,
+                                         vmlinux=args.vmlinux,
+                                         kallsyms=args.kallsyms):
                         print('Failed to execute run_filebench')
                         return False
     return True
