@@ -89,6 +89,15 @@ def test_run(args):
 
 def start_filebench(**kwargs):
     """Run filebench in multiple processes.
+
+    Optional params
+    @param workload the filebench workload name.
+    @param basedir the base directory to mount ramdisk.
+    @param output the output file.
+    @param ndisks the number of (RAM) disks.
+    @param ndirs the number of dirs in one disk.
+    @param nprocs the number of processes running in one filebench.
+    @param nthreads the number of threads running in one filebench process.
     """
     workload = kwargs.get('workload', 'fileserver')
     ndisks = kwargs.get('ndisks', 4)
@@ -97,6 +106,7 @@ def start_filebench(**kwargs):
     nthreads = kwargs.get('nthreads', 1)
     basedir = kwargs.get('basedir', 'ramdisks')
     output = kwargs.get('output', None)
+    iosize = kwargs.get('iosize', '4k')
 
     q = Queue()
     tasks = []
@@ -106,7 +116,7 @@ def start_filebench(**kwargs):
                                         'test{}'.format(testdir))
             task = Process(target=filebench_task,
                            args=(q, workload, testdir_path, 1000, nprocs,
-                                 nthreads, '4k'))
+                                 nthreads, iosize))
             task.start()
             tasks.append(task)
     for task in tasks:
@@ -125,7 +135,7 @@ def start_filebench(**kwargs):
 
 
 def run_filebench(workload, **kwargs):
-    """Run filebench results.
+    """Run filebench.
     """
     ndisks = kwargs.get('ndisks', 4)
     ndirs = kwargs.get('ndirs', 1)
