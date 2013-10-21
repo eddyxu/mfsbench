@@ -117,7 +117,21 @@ def plot_scale_result(args):
 
 
 def plot_perf_result(args):
-    pass
+    """Plot outputs generated from perf (linux kernel performance tool).
+    """
+    files = os.listdir(args.dir)
+    result = analysis.Result()
+    for filename in files:
+        fields = parse_filename(filename)
+        if fields[7] != 'perf.txt':
+            continue
+        fs = fields[1]
+        workload = fields[2]
+        nproc = int(fields[5])
+        perf_file = os.path.join(args.dir, filename)
+        result = perftest.parse_perf_data(perf_file)
+        print(filename)
+        print(result)
 
 
 def main():
@@ -137,6 +151,7 @@ def main():
         plot_numa_result(args)
     elif fields[1] == 'scale':
         plot_scale_result(args)
+    plot_perf_result(args)
 
 
 if __name__ == '__main__':

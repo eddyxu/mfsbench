@@ -33,7 +33,6 @@ def prepare_disks(mntdir, ndisks, ndirs, **kwargs):
     mfsbase.umount_all(mntdir)
 
     for nram in range(ndisks):
-
         disk_path = '/dev/ram{}'.format(nram)
         mntpnt = os.path.join(mntdir, 'ram{}'.format(nram))
         if not os.path.exists(mntpnt):
@@ -124,6 +123,7 @@ def start_filebench(**kwargs):
     counters = Counter()
     while not q.empty():
         rst = q.get()
+        print(rst)
         counters['iops'] += rst['iops']
         counters['throughput'] += rst['throughput']
     print(counters)
@@ -199,8 +199,8 @@ def test_scalability(args):
                     output_prefix = '{}/scale_{}_{}_{}_{}_{}_{}'.format(
                         output_dir, fs, wl, ndisks, ndirs, nproc, i)
                     prepare_disks('ramdisks', ndisks, ndirs, fs=fs)
-                    if not run_filebench(wl, ndisks=ndisks, ndirs=ndirs,
-                                         nthreads=nproc, output=output_prefix,
+                    if not run_filebench(wl, ndisks=ndisks, ndirs=nproc,
+                                         threads=1, output=output_prefix,
                                          events=args.events,
                                          vmlinux=args.vmlinux,
                                          kallsyms=args.kallsyms):
