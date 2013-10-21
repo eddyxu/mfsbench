@@ -1,7 +1,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
-AC_PREREQ([2.69])
+AC_PREREQ([2.68])
 AC_INIT([mfsbench], [0.0.1], [BUG-REPORT-ADDRESS])
 AM_INIT_AUTOMAKE([foreign dist-bzip2])
 AC_CONFIG_MACRO_DIR([m4])
