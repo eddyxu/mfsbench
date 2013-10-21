@@ -191,6 +191,12 @@ def test_scalability(args):
         shutil.rmtree(output_dir)
     os.makedirs(output_dir)
 
+    confs = mfsbase.dump_system_configure()
+    confs['workloads'] = args.workloads
+    confs['filesystems'] = args.formats
+    print(confs)
+    return 0
+
     for fs in args.formats.split(','):
         for wl in args.workloads.split(','):
             for nproc in range(4, 96, 12):

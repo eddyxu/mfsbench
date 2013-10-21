@@ -4,4 +4,4 @@
 	ignore = dirty
 [submodule "pyro"]
 	path = pyro
-	url = https://github.com/eddyxu/pyro.git
+	url = git@github.com:eddyxu/pyro.git

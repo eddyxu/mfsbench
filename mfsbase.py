@@ -8,6 +8,8 @@
 import os
 import sys
 from subprocess import call, check_output
+sys.path.append(os.path.join(os.path.dirname(__file__), 'pyro'))
+import pyro
 
 
 def check_root_or_exit():
@@ -51,6 +53,19 @@ def umount_all(basedir):
         if os.path.ismount(mntpnt):
             umount(mntpnt)
 
+
+def dump_system_configure():
+    """Dump system configurations.
+    """
+    from pyro import osutil
+    import platform as pf
+    sys_confs = {}
+    sys_confs['node'] = pf.node()
+    sys_confs['system'] = pf.system() + " " + pf.release()
+    sys_confs['num_cpus'] = len(osutil.get_online_cpus())
+    sys_confs['memory'] = osutil.get_total_memory()
+
+    return sys_confs
 
 class Profiler:
     """The interface of Profiler.
