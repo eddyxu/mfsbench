@@ -121,6 +121,7 @@ def plot_perf_result(args):
     """
     files = os.listdir(args.dir)
     result = analysis.Result()
+    perf_data = {}
     for filename in files:
         fields = parse_filename(filename)
         if fields[7] != 'perf.txt':
@@ -130,8 +131,18 @@ def plot_perf_result(args):
         nproc = int(fields[5])
         perf_file = os.path.join(args.dir, filename)
         result = perftest.parse_perf_data(perf_file)
+        for event in result:
+            if not event in perf_data:
+                perf_data[event] = {}
+            perf_data[event][nproc] = { x[2]: x[0] for x in result[event]}
         print(filename)
         print(result)
+
+    output_prefix = os.path.abspath(args.dir)
+    for event in perf_data:
+        outfile = output_prefix + '_%s_perf.%s' % (event, args.ext)
+        perftest.plot_top_perf_functions(
+            perf_data, 'cycles', 10, outfile, threshold=0.02)
 
 
 def main():
