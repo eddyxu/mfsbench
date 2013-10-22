@@ -156,6 +156,18 @@ def plot_perf_result(args):
                     result[fs, wl], event, 10, outfile, threshold=0.02)
 
 
+def plot_lock_result(args):
+    outdir = output_dir(args.dir)
+    files = os.listdir(args.dir)
+    result = analysis.Result()
+    for filename in files:
+        fields = parse_filename(filename)
+        if fields[7] != 'lockstat.txt':
+            continue
+        lock_file = os.path.join(args.dir, filename)
+        lock_data = perftest.parse_lockstat_data(lock_file)
+        print(filename)
+
 def main():
     """Plots the results from filebench.
     """
@@ -172,6 +184,7 @@ def main():
     elif fields[1] == 'scale':
         plot_scale_result(args)
     plot_perf_result(args)
+    plot_lock_result(args)
 
 
 if __name__ == '__main__':
