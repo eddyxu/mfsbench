@@ -24,6 +24,17 @@ def read_result_file(filepath):
     return map(float, line.split())
 
 
+def output_dir(input_dir):
+    """Returns the path of output directory.
+    If the output directory is not existed, it creates a new directory.
+    """
+    abspath = os.path.abspath(input_dir)
+    output_dir = abspath + "_plots"
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    return output_dir
+
+
 def plot_numa_result(args):
     """Plot NUMA results.
     """
@@ -60,6 +71,7 @@ def plot_numa_result(args):
 def plot_scale_result(args):
     """Plots performance results for scalability test.
     """
+    outdir = output_dir(args.dir)
     files = os.listdir(args.dir)
     fb_result = analysis.Result()
     for filename in files:
@@ -77,7 +89,7 @@ def plot_scale_result(args):
             fb_result[fs, workload, nproc, "throughput"].append(throughput)
 
     # Plot IOPS results
-    output_prefix = os.path.abspath(args.dir)
+    output_prefix = os.path.join(outdir, os.path.basename(args.dir))
     plt.figure()
     for fs in fb_result:
         for wl in fb_result[fs]:
@@ -95,9 +107,7 @@ def plot_scale_result(args):
     plt.title('Filebench Scalability Test')
     plt.savefig(output_prefix + '_iops.' + args.ext)
 
-
     # Plot Throughput results
-    output_prefix = os.path.abspath(args.dir)
     plt.figure()
     for fs in fb_result:
         for wl in fb_result[fs]:
@@ -115,13 +125,12 @@ def plot_scale_result(args):
     plt.savefig(output_prefix + '_throughput.' + args.ext)
 
 
-
 def plot_perf_result(args):
     """Plot outputs generated from perf (linux kernel performance tool).
     """
+    outdir = output_dir(args.dir)
     files = os.listdir(args.dir)
     result = analysis.Result()
-    perf_data = {}
     for filename in files:
         fields = parse_filename(filename)
         if fields[7] != 'perf.txt':
@@ -130,19 +139,21 @@ def plot_perf_result(args):
         workload = fields[2]
         nproc = int(fields[5])
         perf_file = os.path.join(args.dir, filename)
-        result = perftest.parse_perf_data(perf_file)
-        for event in result:
-            if not event in perf_data:
-                perf_data[event] = {}
-            perf_data[event][nproc] = { x[2]: x[0] for x in result[event]}
-        print(filename)
-        print(result)
+        perf_data = perftest.parse_perf_data(perf_file)
+        for event in perf_data:
+            result[fs, workload, event, nproc] = \
+                {x[2]: x[0] for x in perf_data[event]}
+        #print(filename)
+        #print(result)
 
-    output_prefix = os.path.abspath(args.dir)
-    for event in perf_data:
-        outfile = output_prefix + '_%s_perf.%s' % (event, args.ext)
-        perftest.plot_top_perf_functions(
-            perf_data, 'cycles', 10, outfile, threshold=0.02)
+    output_prefix = os.path.join(outdir, os.path.basename(args.dir))
+    for fs in result:  # filesystem
+        for wl in result[fs]:  # Workload
+            for event in result[fs, wl]:
+                outfile = output_prefix + \
+                    '_%s_%s_%s_perf.%s' % (fs, wl, event, args.ext)
+                perftest.plot_top_perf_functions(
+                    result[fs, wl], event, 10, outfile, threshold=0.02)
 
 
 def main():
@@ -151,8 +162,6 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('dir', metavar='DIR',
                         help='Sets the filebench result directory.')
-    parser.add_argument('-o', '--output', metavar='FILE', default=None,
-                        help='Sets the output file.')
     parser.add_argument('-e', '--ext', metavar='EXT', default='pdf',
                         help='Sets the extension of output file (pdf)')
     args = parser.parse_args()
