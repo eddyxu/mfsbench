@@ -157,6 +157,8 @@ def plot_perf_result(args):
 
 
 def plot_lock_result(args):
+    """Plot lockstat results
+    """
     outdir = output_dir(args.dir)
     files = os.listdir(args.dir)
     result = analysis.Result()
@@ -164,9 +166,34 @@ def plot_lock_result(args):
         fields = parse_filename(filename)
         if fields[7] != 'lockstat.txt':
             continue
+        fs = fields[1]
+        workload = fields[2]
+        nproc = int(fields[5])
         lock_file = os.path.join(args.dir, filename)
         lock_data = perftest.parse_lockstat_data(lock_file)
-        print(filename)
+        result[fs, workload, nproc] = lock_data
+
+    for fs in result:
+        for wl in result[fs]:
+            plot_data = {}
+            first_nproc = list(result[fs, wl].keys())[0]
+            first_func = list(result[fs, wl, first_nproc].keys())[0]
+            fields = list(result[fs, wl, first_nproc, first_func].keys())
+            for nproc in result[fs, wl]:
+                for field in fields:
+                    if not field in plot_data:
+                        plot_data[field] = {}
+                    top_n = 10
+                    top_lock_data = perftest.get_top_n_locks(
+                        result[fs, wl, nproc], field, top_n)
+                    print(top_lock_data)
+                    plot_data[field][nproc] = top_lock_data
+
+
+        #print(filename)
+        #print(lock_data)
+
+
 
 def main():
     """Plots the results from filebench.

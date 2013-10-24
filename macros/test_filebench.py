@@ -191,11 +191,16 @@ def test_scalability(args):
         shutil.rmtree(output_dir)
     os.makedirs(output_dir)
 
-    confs = mfsbase.dump_system_configure()
-    confs['workloads'] = args.workloads
-    confs['filesystems'] = args.formats
-    print(confs)
-    return 0
+    test_conf = {
+        'test': 'scale',
+        'filesystems': args.formats,
+        'workloads': args.workloads,
+        'iteration': args.iteration,
+        'processes': str(list(range(4, 96, 12))),
+        'ndisks': ndisks,
+        'ndirs': ndirs,
+    }
+    mfsbase.dump_configure(test_conf, os.path.join(output_dir, 'testmeta.txt'))
 
     for fs in args.formats.split(','):
         for wl in args.workloads.split(','):

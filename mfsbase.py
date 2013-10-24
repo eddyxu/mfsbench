@@ -54,7 +54,7 @@ def umount_all(basedir):
             umount(mntpnt)
 
 
-def dump_system_configure():
+def dump_configure(test_confs, outfile):
     """Dump system configurations.
     """
     from pyro import osutil
@@ -65,7 +65,14 @@ def dump_system_configure():
     sys_confs['num_cpus'] = len(osutil.get_online_cpus())
     sys_confs['memory'] = osutil.get_total_memory()
 
-    return sys_confs
+    with open(outfile, 'w') as fobj:
+        fobj.write("System Configurations:\n")
+        for k, v in sys_confs.items():
+            fobj.write("{}: {}\n".format(k, v))
+        fobj.write("\nTest Configurations:\n")
+        for k, v in test_confs.items():
+            fobj.write("{}: {}\n".format(k, v))
+
 
 class Profiler:
     """The interface of Profiler.
