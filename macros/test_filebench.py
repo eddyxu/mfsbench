@@ -178,6 +178,12 @@ def run_filebench(workload, **kwargs):
 def split_comma_fields(value):
     return value.split(',')
 
+class SplitCommaAction(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        print(namespace, values, option_string)
+        int_fields = map(int, split_comma_fields(values))
+        setattr(namespace, self.dest, int_fields)
+
 
 def test_scalability(args):
     """Test scalability of manycore
@@ -204,7 +210,7 @@ def test_scalability(args):
 
     for fs in args.formats.split(','):
         for wl in args.workloads.split(','):
-            for nproc in range(4, 96, 12):
+            for nproc in map(int, args.nproc):
                 for i in range(args.iteration):
                     print('Run scalability test')
                     output_prefix = '{}/scale_{}_{}_{}_{}_{}_{}'.format(
@@ -261,6 +267,9 @@ def main():
                         default=WORKLOADS,
                         help='set workloads, separated by comma. (default: {})'
                         .format(WORKLOADS))
+    parser.add_argument('-p', '--nproc', metavar='nproc',
+                        action=SplitCommaAction, default=range(4, 96, 12),
+                        help='sets the number of processes to test.')
     parser.add_argument('-i', '--iteration', metavar='NUM', type=int,
                         default=1, help='set iteration, default: 1')
     parser.add_argument('-s', '--iosize', metavar='NUM', type=int,
