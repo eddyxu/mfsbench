@@ -3,8 +3,9 @@
 # Author: Lei Xu <eddyxu@gmail.com>
 
 import argparse
-import os
+import glob
 import matplotlib.pyplot as plt
+import os
 import sys
 sys.path.append('../pyro')
 from pyro import analysis, perftest, plot
@@ -72,17 +73,16 @@ def plot_scale_result(args):
     """Plots performance results for scalability test.
     """
     outdir = output_dir(args.dir)
-    files = os.listdir(args.dir)
+    files = glob.glob(args.dir + '/*_results.txt')
     fb_result = analysis.Result()
     for filename in files:
-        fields = parse_filename(filename)
+        fields = parse_filename(os.path.basename(filename))
         fs = fields[1]
         workload = fields[2]
         nproc = int(fields[5])
         result = fields[7]
         if result == 'results.txt':
-            iops, throughput = read_result_file(
-                os.path.join(args.dir, filename))
+            iops, throughput = read_result_file(filename)
             if not fb_result[fs, workload, nproc]:
                 fb_result[fs, workload, nproc] = {"iops": [], "throughput": []}
             fb_result[fs, workload, nproc, "iops"].append(iops)
@@ -129,17 +129,16 @@ def plot_perf_result(args):
     """Plot outputs generated from perf (linux kernel performance tool).
     """
     outdir = output_dir(args.dir)
-    files = os.listdir(args.dir)
+    files = glob.glob(args.dir + '/*_perf.txt')
     result = analysis.Result()
     for filename in files:
-        fields = parse_filename(filename)
+        fields = parse_filename(os.path.basename(filename))
         if fields[7] != 'perf.txt':
             continue
         fs = fields[1]
         workload = fields[2]
         nproc = int(fields[5])
-        perf_file = os.path.join(args.dir, filename)
-        perf_data = perftest.parse_perf_data(perf_file)
+        perf_data = perftest.parse_perf_data(filename)
         for event in perf_data:
             result[fs, workload, event, nproc] = \
                 {x[2]: x[0] for x in perf_data[event]}
@@ -160,17 +159,16 @@ def plot_lock_result(args):
     """Plot lockstat results
     """
     outdir = output_dir(args.dir)
-    files = os.listdir(args.dir)
+    files = glob.glob(args.dir + '/*_lockstat.txt')
     result = analysis.Result()
     for filename in files:
-        fields = parse_filename(filename)
+        fields = parse_filename(os.path.basename(filename))
         if fields[7] != 'lockstat.txt':
             continue
         fs = fields[1]
         workload = fields[2]
         nproc = int(fields[5])
-        lock_file = os.path.join(args.dir, filename)
-        lock_data = perftest.parse_lockstat_data(lock_file)
+        lock_data = perftest.parse_lockstat_data(filename)
         result[fs, workload, nproc] = lock_data
 
     xlabel = '# of cores'
