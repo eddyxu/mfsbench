@@ -7,7 +7,7 @@ import os
 import matplotlib.pyplot as plt
 import sys
 sys.path.append('../pyro')
-from pyro import analysis, perftest
+from pyro import analysis, perftest, plot
 
 
 def parse_filename(filename):
@@ -173,6 +173,9 @@ def plot_lock_result(args):
         lock_data = perftest.parse_lockstat_data(lock_file)
         result[fs, workload, nproc] = lock_data
 
+    xlabel = '# of cores'
+    ylabel = 'Samples'
+    output_prefix = os.path.join(outdir, os.path.basename(args.dir))
     for fs in result:
         for wl in result[fs]:
             plot_data = {}
@@ -188,11 +191,15 @@ def plot_lock_result(args):
                         result[fs, wl, nproc], field, top_n)
                     print(top_lock_data)
                     plot_data[field][nproc] = top_lock_data
-
-
-        #print(filename)
-        #print(lock_data)
-
+            for field in plot_data:
+                top_lock_curves = perftest.trans_top_data_to_curves(
+                    plot_data[field])
+                if not top_lock_curves:
+                    continue
+                outfile = output_prefix + \
+                    '_%s_%s_%s_lockstat.%s' % (fs, wl, field, args.ext)
+                plot.plot(top_lock_curves, 'Lockstat (%s)' % field,
+                          xlabel, ylabel, outfile)
 
 
 def main():
