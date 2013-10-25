@@ -8,15 +8,17 @@
 import os
 import sys
 sys.path.append('..')
-import mfsbase
-import set_cpus
+sys.path.append('../pyro')
 from collections import Counter
+from datetime import datetime
 from multiprocessing import Process, Queue
 from subprocess import Popen, PIPE
-from datetime import datetime
-import shutil
 import argparse
+import mfsbase
+from pyro import osutil
 import re
+import set_cpus
+import shutil
 
 FILE_SYSTEMS = 'ext4,btrfs'
 WORKLOADS = 'varmail,fileserver,oltp,webserver,webproxy'
@@ -30,15 +32,16 @@ def prepare_disks(mntdir, ndisks, ndirs, **kwargs):
     print('Preparing directories...{}'.format(mntdir))
     if not os.path.exists(mntdir):
         os.makedirs(mntdir)
-    mfsbase.umount_all(mntdir)
+    osutil.umount_all(mntdir)
 
     for nram in range(ndisks):
         disk_path = '/dev/ram{}'.format(nram)
         mntpnt = os.path.join(mntdir, 'ram{}'.format(nram))
         if not os.path.exists(mntpnt):
             os.makedirs(mntpnt)
-        mfsbase.mount(disk_path, os.path.join(mntdir, 'ram{}'.format(nram)),
-                      format=fs)
+        osutil.mount(disk_path,
+                     os.path.join(mntdir, 'ram{}'.format(nram)),
+                     format=fs)
         for dir_num in range(ndirs):
             dirpath = os.path.join(mntdir, 'ram{}'.format(nram),
                                    'test{}'.format(dir_num))
@@ -178,7 +181,10 @@ def run_filebench(workload, **kwargs):
 def split_comma_fields(value):
     return value.split(',')
 
+
 class SplitCommaAction(argparse.Action):
+    """Split the comma separated values and returns as int list.
+    """
     def __call__(self, parser, namespace, values, option_string=None):
         print(namespace, values, option_string)
         int_fields = map(int, split_comma_fields(values))
@@ -286,7 +292,6 @@ def main():
     parser.add_argument('-S', '--kallsyms', default=None, metavar='FILE',
                         help='set kallsyms pathname for perf (optional)')
 
-
     subs = parser.add_subparsers()
 
     parser_scale = subs.add_parser('scale', help='Test Scalability')
@@ -327,7 +332,7 @@ def main():
 
     global PERF
     PERF = args.perf
-    mfsbase.check_root_or_exit()
+    osutil.check_root_or_exit()
     return args.func(args)
 
 if __name__ == '__main__':
