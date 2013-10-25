@@ -123,7 +123,7 @@ def start_filebench(**kwargs):
     counters = Counter()
     while not q.empty():
         rst = q.get()
-        print(rst)
+        # print(rst)
         counters['iops'] += rst['iops']
         counters['throughput'] += rst['throughput']
     print(counters)
@@ -268,7 +268,7 @@ def main():
                         help='set workloads, separated by comma. (default: {})'
                         .format(WORKLOADS))
     parser.add_argument('-p', '--nproc', metavar='nproc',
-                        action=SplitCommaAction, default=range(4, 96, 12),
+                        action=SplitCommaAction, default=range(4, 60, 4),
                         help='sets the number of processes to test.')
     parser.add_argument('-i', '--iteration', metavar='NUM', type=int,
                         default=1, help='set iteration, default: 1')
