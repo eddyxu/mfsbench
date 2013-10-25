@@ -163,9 +163,9 @@ def run_filebench(workload, **kwargs):
                   result_file)
     print(cmd)
     perf.start(cmd)
+    perf.stop()
     procstat.stop()
     lockstat.stop()
-    perf.stop()
 
     if cpus:
         set_cpus.reset()
@@ -174,7 +174,7 @@ def run_filebench(workload, **kwargs):
     lockstat.dump(output + '_lockstat.txt')
     perf.dump(output + '_perf.txt')
 
-    mfsbase.umount_all('ramdisks')
+    osutil.umount_all('ramdisks')
     return True
 
 
