@@ -29,6 +29,7 @@ def prepare_disks(mntdir, ndisks, ndirs, **kwargs):
     """Prepare disks
     """
     fs = kwargs.get('fs', 'ext4')
+    no_journal = kwargs.get('no_journal', False)
     print('Preparing directories...{}'.format(mntdir))
     if not os.path.exists(mntdir):
         os.makedirs(mntdir)
@@ -41,7 +42,7 @@ def prepare_disks(mntdir, ndisks, ndirs, **kwargs):
             os.makedirs(mntpnt)
         osutil.mount(disk_path,
                      os.path.join(mntdir, 'ram{}'.format(nram)),
-                     format=fs)
+                     format=fs, no_journal=no_journal)
         for dir_num in range(ndirs):
             dirpath = os.path.join(mntdir, 'ram{}'.format(nram),
                                    'test{}'.format(dir_num))
@@ -295,6 +296,8 @@ def main():
     subs = parser.add_subparsers()
 
     parser_scale = subs.add_parser('scale', help='Test Scalability')
+    parser_scale.add_argument('-j', '--no-journal', action='store_true',
+        default=False, help='turn off journaling on ext4.')
     parser_scale.set_defaults(func=test_scalability)
 
     parser_numa = subs.add_parser('numa', help='Test NUMA architecture')
