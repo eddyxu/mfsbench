@@ -191,7 +191,7 @@ def plot_lock_result(args):
                     plot_data[field][nproc] = top_lock_data
             for field in plot_data:
                 top_lock_curves = perftest.trans_top_data_to_curves(
-                    plot_data[field], show_all=True)
+                    plot_data[field], top_n=5)
                 if not top_lock_curves:
                     continue
                 outfile = output_prefix + \
