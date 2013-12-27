@@ -66,6 +66,7 @@ run ${}\n""".format(workload, testdir, nfiles, nproc, nthread, iosize, runtime)
     p = Popen('filebench', stdin=PIPE, stdout=PIPE, stderr=PIPE)
     stdout, stderr = p.communicate(conf.encode('utf-8'))
     output = stdout.decode('utf-8')
+    print(output)
     for line in output.split('\n'):
         if not 'Summary:' in line:
             continue
@@ -197,6 +198,7 @@ def test_scalability(args):
     """
     ndisks = 1
     ndirs = 1
+    no_journal = args.no_journal
 
     now = datetime.now()
     output_dir = 'filebench_scale_' + now.strftime('%Y_%m_%d_%H_%M')
@@ -222,7 +224,8 @@ def test_scalability(args):
                     print('Run scalability test')
                     output_prefix = '{}/scale_{}_{}_{}_{}_{}_{}'.format(
                         output_dir, fs, wl, ndisks, ndirs, nproc, i)
-                    prepare_disks('ramdisks', ndisks, ndirs, fs=fs)
+                    prepare_disks('ramdisks', ndisks, ndirs, fs=fs,
+                                  no_journal=no_journal)
                     if not run_filebench(wl, ndisks=ndisks, ndirs=nproc,
                                          threads=1, output=output_prefix,
                                          events=args.events,
