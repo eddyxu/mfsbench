@@ -30,6 +30,11 @@ def prepare_disks(mntdir, ndisks, ndirs, **kwargs):
     """
     fs = kwargs.get('fs', 'ext4')
     no_journal = kwargs.get('no_journal', False)
+    # mount options.
+    options = ''
+    if fs == 'ext4':
+        options = 'noatime,nodiratime'
+
     print('Preparing directories...{}'.format(mntdir))
     if not os.path.exists(mntdir):
         os.makedirs(mntdir)
@@ -42,7 +47,7 @@ def prepare_disks(mntdir, ndisks, ndirs, **kwargs):
             os.makedirs(mntpnt)
         osutil.mount(disk_path,
                      os.path.join(mntdir, 'ram{}'.format(nram)),
-                     format=fs, no_journal=no_journal)
+                     format=fs, no_journal=no_journal, options=options)
         for dir_num in range(ndirs):
             dirpath = os.path.join(mntdir, 'ram{}'.format(nram),
                                    'test{}'.format(dir_num))
@@ -214,6 +219,7 @@ def test_scalability(args):
         'processes': str(list(range(4, 96, 12))),
         'ndisks': ndisks,
         'ndirs': ndirs,
+        'mount_options': 'noatime,nodirtime',
     }
     mfsbase.dump_configure(test_conf, os.path.join(output_dir, 'testmeta.txt'))
 
