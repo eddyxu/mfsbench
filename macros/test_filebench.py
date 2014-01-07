@@ -67,7 +67,7 @@ set $nprocesses={}
 set $nthreads={}
 set $iosize={}
 set $meanappendsize=4k
-run ${}\n""".format(workload, testdir, nfiles, nproc, nthread, iosize, runtime)
+run {}\n""".format(workload, testdir, nfiles, nproc, nthread, iosize, runtime)
     print('Filebench confs: {}'.format(conf))
     p = Popen('filebench', stdin=PIPE, stdout=PIPE, stderr=PIPE)
     stdout, stderr = p.communicate(conf.encode('utf-8'))
