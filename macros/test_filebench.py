@@ -324,7 +324,7 @@ def main():
                             default=1,
                             help='set the number of directories in each disk.')
     parser_run.add_argument('-p', '--process', type=int, metavar='NUM',
-                            default=0, help='set the number of processes.')
+                            default=1, help='set the number of processes.')
     parser_run.add_argument('-t', '--thread', type=int, metavar='NUM',
                             default=1, help='set the number of threads.')
     parser_run.add_argument(

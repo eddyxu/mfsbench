@@ -152,7 +152,7 @@ def plot_perf_result(args):
                 outfile = output_prefix + \
                     '_%s_%s_%s_perf.%s' % (fs, wl, event, args.ext)
                 perftest.plot_top_perf_functions(
-                    result[fs, wl], event, 10, outfile, threshold=0.02)
+                    result[fs, wl], event, 5, outfile, threshold=0.02)
 
 
 def plot_lock_result(args):
