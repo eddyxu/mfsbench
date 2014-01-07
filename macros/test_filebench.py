@@ -68,6 +68,7 @@ set $nthreads={}
 set $iosize={}
 set $meanappendsize=4k
 run ${}\n""".format(workload, testdir, nfiles, nproc, nthread, iosize, runtime)
+    print('Filebench confs: {}'.format(conf))
     p = Popen('filebench', stdin=PIPE, stdout=PIPE, stderr=PIPE)
     stdout, stderr = p.communicate(conf.encode('utf-8'))
     output = stdout.decode('utf-8')
@@ -165,8 +166,8 @@ def run_filebench(workload, **kwargs):
     procstat.start()
 
     result_file = output + '_results.txt'
-    cmd = '{} run --disks {} --dirs {} -b {} -p {} -t {} -o {}' \
-          .format(__file__, ndisks, ndirs, basedir, nprocs, nthreads,
+    cmd = '{} run -w {} --disks {} --dirs {} -b {} -p {} -t {} -o {}' \
+          .format(__file__, workload, ndisks, ndirs, basedir, nprocs, nthreads,
                   result_file)
     print(cmd)
     perf.start(cmd)
