@@ -21,9 +21,18 @@ import set_cpus
 import shutil
 
 FILE_SYSTEMS = 'ext4,btrfs'
-WORKLOADS = 'varmail,fileserver,oltp,webserver,webproxy'
+WORKLOADS = None
 PERF = 'perf'
 
+
+def avail_workloads():
+    """List all available local workloads.
+    """
+    workloads = sorted([os.path.splitext(workload)[0] for
+                  workload in os.listdir('workloads')])
+    return workloads
+
+WORKLOADS = avail_workloads()
 
 def prepare_disks(mntdir, ndisks, ndirs, **kwargs):
     """Prepare disks
