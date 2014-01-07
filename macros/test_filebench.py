@@ -60,7 +60,7 @@ def filebench_task(queue, workload, testdir, nfiles, nproc, nthread, iosize,
     """
     runtime = kwargs.get('runtime', 60)
     conf = """
-load {}
+load workloads/{}
 set $dir={}
 set $nfiles={}
 set $nprocesses={}
@@ -308,7 +308,8 @@ def main():
 
     parser_scale = subs.add_parser('scale', help='Test Scalability')
     parser_scale.add_argument('-j', '--no-journal', action='store_true',
-        default=False, help='turn off journaling on ext4.')
+                              default=False,
+                              help='turn off journaling on ext4.')
     parser_scale.set_defaults(func=test_scalability)
 
     parser_numa = subs.add_parser('numa', help='Test NUMA architecture')
