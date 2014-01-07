@@ -232,7 +232,8 @@ def test_scalability(args):
                         output_dir, fs, wl, ndisks, ndirs, nproc, i)
                     prepare_disks('ramdisks', ndisks, ndirs, fs=fs,
                                   no_journal=no_journal)
-                    if not run_filebench(wl, ndisks=ndisks, ndirs=nproc,
+                    if not run_filebench(wl, ndisks=ndisks, ndirs=ndirs,
+                                         nprocs=nproc,
                                          threads=1, output=output_prefix,
                                          events=args.events,
                                          vmlinux=args.vmlinux,
