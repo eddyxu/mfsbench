@@ -20,7 +20,7 @@ import re
 import set_cpus
 import shutil
 
-FILE_SYSTEMS = 'ext4,btrfs'
+FILE_SYSTEMS = 'ext2,ext4,btrfs'
 WORKLOADS = None
 PERF = 'perf'
 
@@ -253,6 +253,56 @@ def test_scalability(args):
     return True
 
 
+def test_cpu_scale(args):
+    """Run benchmark with different active CPUs.
+    """
+    ndisks = 1
+    ndirs = 1
+    no_journal = args.no_journal
+
+    now = datetime.now()
+    output_dir = 'filebench_scale_' + now.strftime('%Y_%m_%d_%H_%M')
+    if os.path.exists(output_dir):
+        shutil.rmtree(output_dir)
+    os.makedirs(output_dir)
+
+    test_conf = {
+        'test': 'cpu_scale',
+        'filesystems': args.formats,
+        'workloads': args.workloads,
+        'iteration': args.iteration,
+        'processes': str(list(range(4, 96, 12))),
+        'ndisks': ndisks,
+        'ndirs': ndirs,
+        'mount_options': 'noatime,nodirtime',
+    }
+    mfsbase.dump_configure(test_conf, os.path.join(output_dir, 'testmeta.txt'))
+
+    nprocs = args.ncpus
+    for fs in args.formats.split(','):
+        for wl in args.workloads.split(','):
+            for ncpus in map(int, args.cpus):
+                cpus = '0-%d'.format(ncpus - 1)
+                set_cpus.set_cpus(cpus)
+                for i in range(args.iteration):
+                    print('Run CPU scalability test')
+                    output_prefix = '{}/ncpu_scale_{}_{}_{}_{}_{}_{}'.format(
+                        output_dir, fs, wl, ndisks, ndirs, nproc, i)
+                    prepare_disks('ramdisks', ndisks, ndirs, fs=fs,
+                                  no_journal=no_journal)
+                    if not run_filebench(wl, ndisks=ndisks, ndirs=ndirs,
+                                         nprocs=nproc,
+                                         threads=1, output=output_prefix,
+                                         events=args.events,
+                                         vmlinux=args.vmlinux,
+                                         kallsyms=args.kallsyms):
+                        set_cpus.reset()
+                        print('Failed to execute run_filebench')
+                        return False
+                set_cpus.reset()
+    return True
+
+
 def test_numa(args):
     """Test how NUMA architecture affects the filebench performance.
     """
@@ -286,17 +336,14 @@ def main():
     """Filebench tests
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument('-f', '--formats', metavar='FS,FS,..',
+    parser.add_argument('-f', '--formats', metavar='FS,..',
                         default=FILE_SYSTEMS,
                         help='sets testing file systems (default: {}).'
                         .format(FILE_SYSTEMS))
-    parser.add_argument('-w', '--workloads', metavar='NAME,NAME,..',
+    parser.add_argument('-w', '--workloads', metavar='NAME,..',
                         default=WORKLOADS,
                         help='set workloads, separated by comma. (default: {})'
-                        .format(WORKLOADS))
-    parser.add_argument('-p', '--nproc', metavar='nproc',
-                        action=SplitCommaAction, default=range(4, 60, 4),
-                        help='sets the number of processes to test.')
+                        .format(','.join(WORKLOADS)))
     parser.add_argument('-i', '--iteration', metavar='NUM', type=int,
                         default=1, help='set iteration, default: 1')
     parser.add_argument('-s', '--iosize', metavar='NUM', type=int,
@@ -315,13 +362,33 @@ def main():
 
     subs = parser.add_subparsers()
 
-    parser_scale = subs.add_parser('scale', help='Test Scalability')
+    parser_scale = subs.add_parser('scale', help='Test scalability by running'
+                                   ' multiprocess on all CPUs.')
+    parser.add_argument('-p', '--nproc', metavar='nproc',
+                        action=SplitCommaAction, default=range(4, 60, 4),
+                        help='sets the number of processes to test.')
     parser_scale.add_argument('-j', '--no-journal', action='store_true',
                               default=False,
                               help='turn off journaling on ext4.')
     parser_scale.set_defaults(func=test_scalability)
 
-    parser_numa = subs.add_parser('numa', help='Test NUMA architecture')
+    # Options for sub-command 'cpuscale'
+    parser_cpuscale = subs.add_parser(
+        'cpuscale', help='Test CPU scale test with different numbers of '
+        'active CPUs.')
+    parser_cpuscale.add_argument(
+        '-c', '--cpus', metavar='cpus', action=SplitCommaAction,
+        default=range(4, 49, 4),
+        help='sets the number of activate CPUs to test.')
+    parser_cpuscale.add_argument(
+        '-p', '--process', type=int, metavar='NUM',
+        default=128, help='set the number of processes (default: %(default)d)')
+    parser_cpuscale.add_argument(
+        '-t', '--thread', type=int, metavar='NUM',
+        default=1, help='set the number of threads (default: %(default)d)')
+    parser_cpuscale.set_defaults(func=test_cpu_scale)
+
+    parser_numa = subs.add_parser('numa', help='Test NUMA architecture.')
     parser_numa.add_argument('-n', '--disks', type=int, metavar='NUM',
                              default=4, help='set the number of disks to run.')
     parser_numa.add_argument(
