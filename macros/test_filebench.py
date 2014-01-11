@@ -278,16 +278,17 @@ def test_cpu_scale(args):
     }
     mfsbase.dump_configure(test_conf, os.path.join(output_dir, 'testmeta.txt'))
 
-    nprocs = args.ncpus
+    nproc = args.process
     for fs in args.formats.split(','):
         for wl in args.workloads.split(','):
             for ncpus in map(int, args.cpus):
-                cpus = '0-%d'.format(ncpus - 1)
+                cpus = "0-{}".format(ncpus - 1)
+                print(cpus)
                 set_cpus.set_cpus(cpus)
                 for i in range(args.iteration):
                     print('Run CPU scalability test')
                     output_prefix = '{}/ncpu_scale_{}_{}_{}_{}_{}_{}'.format(
-                        output_dir, fs, wl, ndisks, ndirs, nproc, i)
+                        output_dir, fs, wl, ndisks, ndirs, ncpus, i)
                     prepare_disks('ramdisks', ndisks, ndirs, fs=fs,
                                   no_journal=no_journal)
                     if not run_filebench(wl, ndisks=ndisks, ndirs=ndirs,
@@ -380,6 +381,9 @@ def main():
         '-c', '--cpus', metavar='cpus', action=SplitCommaAction,
         default=range(4, 49, 4),
         help='sets the number of activate CPUs to test.')
+    parser_cpuscale.add_argument('-j', '--no-journal', action='store_true',
+                                 default=False,
+                                 help='turn off journaling on ext4.')
     parser_cpuscale.add_argument(
         '-p', '--process', type=int, metavar='NUM',
         default=128, help='set the number of processes (default: %(default)d)')
