@@ -25,6 +25,34 @@ WORKLOADS = None
 PERF = 'perf'
 
 
+class Checkpoint(object):
+    def __init__(self, logpath):
+        self.steps = 0
+        if os.path.exists(logpath):
+            with open(logpath, 'r') as logfile:
+                for line in logfile:
+                    if line.startswith('CHK DONE:'):
+                        fields = line.split()
+                        if len(fields) != 3:
+                            break
+                        self.steps = int(fields[2])
+
+        self.logfile = open(logpath, 'a')
+
+    def __del__(self):
+        if self.logfile:
+            self.logfile.close()
+
+    def start(self):
+        self.logfile.write('CHK START: {}\n'.format(self.steps + 1))
+        self.logfile.flush()
+
+    def done(self):
+        self.steps += 1
+        self.logfile.write('CHK DONE: {}\n'.format(self.steps))
+        self.logfile.flush()
+
+
 def avail_workloads():
     """List all available local workloads.
     """
@@ -265,6 +293,7 @@ def test_cpu_scale(args):
     if os.path.exists(output_dir):
         shutil.rmtree(output_dir)
     os.makedirs(output_dir)
+    check_point = Checkpoint('checkpoint.log')
 
     test_conf = {
         'test': 'cpu_scale',
@@ -278,6 +307,7 @@ def test_cpu_scale(args):
     }
     mfsbase.dump_configure(test_conf, os.path.join(output_dir, 'testmeta.txt'))
 
+    steps = 0
     nproc = args.process
     for fs in args.formats.split(','):
         for wl in args.workloads.split(','):
@@ -286,6 +316,10 @@ def test_cpu_scale(args):
                 print(cpus)
                 set_cpus.set_cpus(cpus)
                 for i in range(args.iteration):
+                    steps += 1
+                    if check_point.steps >= steps:
+                        continue
+                    check_point.start()
                     print('Run CPU scalability test')
                     output_prefix = '{}/ncpu_scale_{}_{}_{}_{}_{}_{}'.format(
                         output_dir, fs, wl, ndisks, ndirs, ncpus, i)
@@ -300,6 +334,7 @@ def test_cpu_scale(args):
                         set_cpus.reset()
                         print('Failed to execute run_filebench')
                         return False
+                    check_point.done()
                 set_cpus.reset()
     return True
 
