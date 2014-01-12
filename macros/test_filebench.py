@@ -260,11 +260,17 @@ def test_scalability(args):
         'mount_options': 'noatime,nodirtime',
     }
     mfsbase.dump_configure(test_conf, os.path.join(output_dir, 'testmeta.txt'))
+    check_point = Checkpoint('scale_checkpoint.log')
 
+    steps = 0
     for fs in args.formats.split(','):
         for wl in args.workloads.split(','):
             for nproc in map(int, args.nproc):
                 for i in range(args.iteration):
+                    steps += 1
+                    if check_point.steps >= steps:
+                        continue
+                    check_point.start()
                     print('Run scalability test')
                     output_prefix = '{}/scale_{}_{}_{}_{}_{}_{}'.format(
                         output_dir, fs, wl, ndisks, ndirs, nproc, i)
@@ -278,6 +284,7 @@ def test_scalability(args):
                                          kallsyms=args.kallsyms):
                         print('Failed to execute run_filebench')
                         return False
+                    check_point.done()
     return True
 
 
