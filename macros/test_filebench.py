@@ -284,7 +284,7 @@ def test_scalability(args):
                                          kallsyms=args.kallsyms):
                         print('Failed to execute run_filebench')
                         return False
-                    check_point.done()
+
     return True
 
 
@@ -296,7 +296,7 @@ def test_cpu_scale(args):
     no_journal = args.no_journal
 
     now = datetime.now()
-    output_dir = 'filebench_scale_' + now.strftime('%Y_%m_%d_%H_%M')
+    output_dir = 'filebench_cpuscale_' + now.strftime('%Y_%m_%d_%H_%M')
     if os.path.exists(output_dir):
         shutil.rmtree(output_dir)
     os.makedirs(output_dir)
@@ -320,7 +320,8 @@ def test_cpu_scale(args):
         for wl in args.workloads.split(','):
             for ncpus in map(int, args.cpus):
                 cpus = "0-{}".format(ncpus - 1)
-                print(cpus)
+                print('CPU scale test: cpus: {}, fs: {}, workload: {}'.format(
+                    cpus, fs, wl))
                 set_cpus.set_cpus(cpus)
                 for i in range(args.iteration):
                     steps += 1

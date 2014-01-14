@@ -69,6 +69,29 @@ def plot_numa_result(args):
     plt.savefig(output_prefix + "_iops.pdf")
 
 
+def plot_scale_figure(dirpath, result, field, xlabel, ext='pdf'):
+    """
+    @param field "iops" or "throughput"
+    """
+    outdir = output_dir(dirpath)
+    output_prefix = os.path.join(outdir, os.path.basename(dirpath))
+    plt.figure()
+    for fs in result:
+        for wl in result[fs]:
+            x_values = sorted(result[fs, wl].keys())
+            y_values = []
+            for xval in x_values:
+                y_values.append(result[fs, wl, xval, field])
+            #print(result[fs, wl])
+            plt.plot(x_values, y_values, label='%s (%s)' % (wl, fs))
+
+    plt.ylim(0)
+    plt.legend()
+    plt.xlabel(xlabel)
+    plt.ylabel(field)
+    plt.title('Filebench Scalability Test')
+    plt.savefig(output_prefix + '_' + field + '.' + ext)
+
 def plot_scale_result(args):
     """Plots performance results for scalability test.
     """
@@ -84,45 +107,35 @@ def plot_scale_result(args):
         if result == 'results.txt':
             iops, throughput = read_result_file(filename)
             if not fb_result[fs, workload, nproc]:
-                fb_result[fs, workload, nproc] = {"iops": [], "throughput": []}
-            fb_result[fs, workload, nproc, "iops"].append(iops)
-            fb_result[fs, workload, nproc, "throughput"].append(throughput)
+                fb_result[fs, workload, nproc] = {"IOPS": [], "Throughput": []}
+            fb_result[fs, workload, nproc, "IOPS"].append(iops)
+            fb_result[fs, workload, nproc, "Throughput"].append(throughput)
 
-    # Plot IOPS results
-    output_prefix = os.path.join(outdir, os.path.basename(args.dir))
-    plt.figure()
-    for fs in fb_result:
-        for wl in fb_result[fs]:
-            processes = sorted(fb_result[fs, wl].keys())
-            iops = []
-            for proc in processes:
-                iops.append(fb_result[fs, wl, proc, "iops"])
-            print(fb_result[fs, wl])
-            plt.plot(processes, iops, label='%s (%s)' % (wl, fs))
+    plot_scale_figure(args.dir, fb_result, 'IOPS', 'Threads', args.ext)
+    plot_scale_figure(args.dir, fb_result, 'Throughput', 'Threads', args.ext)
 
-    plt.ylim(0)
-    plt.legend()
-    plt.xlabel('Threads')
-    plt.ylabel('IOPS')
-    plt.title('Filebench Scalability Test')
-    plt.savefig(output_prefix + '_iops.' + args.ext)
 
-    # Plot Throughput results
-    plt.figure()
-    for fs in fb_result:
-        for wl in fb_result[fs]:
-            processes = sorted(fb_result[fs, wl].keys())
-            iops = []
-            for proc in processes:
-                iops.append(fb_result[fs, wl, proc, "throughput"])
-            plt.plot(processes, iops, label='%s (%s)' % (wl, fs))
+def plot_cpuscale_result(args):
+    """Plot CPU-scale performance
+    """
+    files = glob.glob(args.dir + '/*_results.txt')
+    fb_result = analysis.Result()
+    for filename in files:
+        fields = parse_filename(os.path.basename(filename))
+        print(fields)
+        fs = fields[2]
+        workload = fields[3]
+        ncpus = int(fields[6])
+        print(ncpus)
+        iops, throughput = read_result_file(filename)
+        print(iops, throughput)
+        if not fb_result[fs, workload, ncpus]:
+            fb_result[fs, workload, ncpus] = {"IOPS": [], "Throughput": []}
+        fb_result[fs, workload, ncpus, "IOPS"].append(iops)
+        fb_result[fs, workload, ncpus, "Throughput"].append(throughput)
 
-    plt.ylim(0)
-    plt.legend()
-    plt.xlabel('Threads')
-    plt.ylabel('Throughput (MB/s)')
-    plt.title('Filebench Scalability Test')
-    plt.savefig(output_prefix + '_throughput.' + args.ext)
+    plot_scale_figure(args.dir, fb_result, 'IOPS', 'CPUs', ext=args.ext)
+    plot_scale_figure(args.dir, fb_result, 'Throughput', 'CPUs', ext=args.ext)
 
 
 def plot_perf_result(args):
@@ -215,6 +228,9 @@ def main():
         plot_numa_result(args)
     elif fields[1] == 'scale':
         plot_scale_result(args)
+    elif fields[1] == 'cpuscale':
+        plot_cpuscale_result(args)
+
     plot_perf_result(args)
     plot_lock_result(args)
 
