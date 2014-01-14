@@ -92,10 +92,10 @@ def plot_scale_figure(dirpath, result, field, xlabel, ext='pdf'):
     plt.title('Filebench Scalability Test')
     plt.savefig(output_prefix + '_' + field + '.' + ext)
 
+
 def plot_scale_result(args):
     """Plots performance results for scalability test.
     """
-    outdir = output_dir(args.dir)
     files = glob.glob(args.dir + '/*_results.txt')
     fb_result = analysis.Result()
     for filename in files:
@@ -122,13 +122,10 @@ def plot_cpuscale_result(args):
     fb_result = analysis.Result()
     for filename in files:
         fields = parse_filename(os.path.basename(filename))
-        print(fields)
         fs = fields[2]
         workload = fields[3]
         ncpus = int(fields[6])
-        print(ncpus)
         iops, throughput = read_result_file(filename)
-        print(iops, throughput)
         if not fb_result[fs, workload, ncpus]:
             fb_result[fs, workload, ncpus] = {"IOPS": [], "Throughput": []}
         fb_result[fs, workload, ncpus, "IOPS"].append(iops)
