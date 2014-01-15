@@ -28,6 +28,7 @@ PERF = 'perf'
 class Checkpoint(object):
     def __init__(self, logpath):
         self.steps = 0
+        self.outdir = ''
         if os.path.exists(logpath):
             with open(logpath, 'r') as logfile:
                 for line in logfile:
@@ -36,12 +37,22 @@ class Checkpoint(object):
                         if len(fields) != 3:
                             break
                         self.steps = int(fields[2])
+                    if line.startswith('CHK DIR:'):
+                        fields = line.split()
+                        if len(fields) != 3:
+                            break
+                        self.outdir = fields[2]
 
         self.logfile = open(logpath, 'a')
 
     def __del__(self):
         if self.logfile:
             self.logfile.close()
+
+    def set_outdir(self, outdir):
+        self.outdir = outdir
+        self.logfile.write('CHK DIR: {}\n'.format(outdir))
+        self.logfile.flush()
 
     def start(self):
         self.logfile.write('CHK START: {}\n'.format(self.steps + 1))
@@ -57,10 +68,11 @@ def avail_workloads():
     """List all available local workloads.
     """
     workloads = sorted([os.path.splitext(workload)[0] for
-                  workload in os.listdir('workloads')])
+                        workload in os.listdir('workloads')])
     return workloads
 
 WORKLOADS = avail_workloads()
+
 
 def prepare_disks(mntdir, ndisks, ndirs, **kwargs):
     """Prepare disks
@@ -162,7 +174,7 @@ def start_filebench(**kwargs):
             testdir_path = os.path.join(basedir, 'ram{}'.format(disk),
                                         'test{}'.format(testdir))
             task = Process(target=filebench_task,
-                           args=(q, workload, testdir_path, 1000, nprocs,
+                           args=(q, workload, testdir_path, 10000, nprocs,
                                  nthreads, iosize))
             task.start()
             tasks.append(task)
@@ -243,11 +255,17 @@ def test_scalability(args):
     ndirs = 1
     no_journal = args.no_journal
 
-    now = datetime.now()
-    output_dir = 'filebench_scale_' + now.strftime('%Y_%m_%d_%H_%M')
-    if os.path.exists(output_dir):
-        shutil.rmtree(output_dir)
-    os.makedirs(output_dir)
+    check_point = Checkpoint('scale_checkpoint.log')
+    output_dir = ''
+    if check_point.outdir:
+        output_dir = check_point.outdir
+    else:
+        now = datetime.now()
+        output_dir = 'filebench_scale_' + now.strftime('%Y_%m_%d_%H_%M')
+        if os.path.exists(output_dir):
+            shutil.rmtree(output_dir)
+        os.makedirs(output_dir)
+        check_point.set_outdir(output_dir)
 
     test_conf = {
         'test': 'scale',
@@ -260,7 +278,6 @@ def test_scalability(args):
         'mount_options': 'noatime,nodirtime',
     }
     mfsbase.dump_configure(test_conf, os.path.join(output_dir, 'testmeta.txt'))
-    check_point = Checkpoint('scale_checkpoint.log')
 
     steps = 0
     for fs in args.formats.split(','):
@@ -295,12 +312,17 @@ def test_cpu_scale(args):
     ndirs = 1
     no_journal = args.no_journal
 
-    now = datetime.now()
-    output_dir = 'filebench_cpuscale_' + now.strftime('%Y_%m_%d_%H_%M')
-    if os.path.exists(output_dir):
-        shutil.rmtree(output_dir)
-    os.makedirs(output_dir)
     check_point = Checkpoint('checkpoint.log')
+    output_dir = ''
+    if check_point.outdir:
+        output_dir = check_point.outdir
+    else:
+        now = datetime.now()
+        output_dir = 'filebench_cpuscale_' + now.strftime('%Y_%m_%d_%H_%M')
+        if os.path.exists(output_dir):
+            shutil.rmtree(output_dir)
+        os.makedirs(output_dir)
+        check_point.set_outdir(output_dir)
 
     test_conf = {
         'test': 'cpu_scale',
@@ -329,7 +351,7 @@ def test_cpu_scale(args):
                         continue
                     check_point.start()
                     print('Run CPU scalability test')
-                    output_prefix = '{}/ncpu_scale_{}_{}_{}_{}_{}_{}'.format(
+                    output_prefix = '{}/cpuscale_{}_{}_{}_{}_{}_{}'.format(
                         output_dir, fs, wl, ndisks, ndirs, ncpus, i)
                     prepare_disks('ramdisks', ndisks, ndirs, fs=fs,
                                   no_journal=no_journal)
