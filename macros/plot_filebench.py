@@ -173,11 +173,17 @@ def plot_lock_result(args):
     result = analysis.Result()
     for filename in files:
         fields = parse_filename(os.path.basename(filename))
-        if fields[7] != 'lockstat.txt':
-            continue
-        fs = fields[1]
-        workload = fields[2]
-        nproc = int(fields[5])
+        #if fields[7] != 'lockstat.txt':
+        #    continue
+        print(fields)
+        if fields[0] == 'ncpu':
+            fs = fields[2]
+            workload = fields[3]
+            nproc = int(fields[6])
+        else:
+            fs = fields[1]
+            workload = fields[2]
+            nproc = int(fields[5])
         lock_data = perftest.parse_lockstat_data(filename)
         result[fs, workload, nproc] = lock_data
 
