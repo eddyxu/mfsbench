@@ -75,15 +75,18 @@ def plot_scale_figure(dirpath, result, field, xlabel, ext='pdf'):
     """
     outdir = output_dir(dirpath)
     output_prefix = os.path.join(outdir, os.path.basename(dirpath))
+    workload_linestyles = ['-', '--', '-+']
+    colors = ['b', 'r', 'k']
     plt.figure()
-    for fs in result:
-        for wl in result[fs]:
+    for fs, color in zip(result, colors):
+        for wl, ls in zip(result[fs], workload_linestyles):
             x_values = sorted(result[fs, wl].keys())
             y_values = []
             for xval in x_values:
                 y_values.append(result[fs, wl, xval, field])
             #print(result[fs, wl])
-            plt.plot(x_values, y_values, label='%s (%s)' % (wl, fs))
+            plt.plot(x_values, y_values, ls, label='%s (%s)' % (wl, fs),
+                     color=color)
 
     plt.ylim(0)
     plt.legend()
@@ -122,9 +125,10 @@ def plot_cpuscale_result(args):
     fb_result = analysis.Result()
     for filename in files:
         fields = parse_filename(os.path.basename(filename))
-        fs = fields[2]
-        workload = fields[3]
-        ncpus = int(fields[6])
+        #print(fields)
+        fs = fields[1]
+        workload = fields[2]
+        ncpus = int(fields[5])
         iops, throughput = read_result_file(filename)
         if not fb_result[fs, workload, ncpus]:
             fb_result[fs, workload, ncpus] = {"IOPS": [], "Throughput": []}
@@ -173,9 +177,7 @@ def plot_lock_result(args):
     result = analysis.Result()
     for filename in files:
         fields = parse_filename(os.path.basename(filename))
-        #if fields[7] != 'lockstat.txt':
-        #    continue
-        print(fields)
+        # print(fields)
         if fields[0] == 'ncpu':
             fs = fields[2]
             workload = fields[3]
