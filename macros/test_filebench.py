@@ -301,6 +301,7 @@ def test_scalability(args):
                                          kallsyms=args.kallsyms):
                         print('Failed to execute run_filebench')
                         return False
+                    check_point.done()
 
     return True
 
