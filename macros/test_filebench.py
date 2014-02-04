@@ -204,13 +204,23 @@ def run_filebench(workload, **kwargs):
     nprocs = kwargs.get('nprocs', 1)
     nthreads = kwargs.get('nthreads', 1)
     output = kwargs.get('output', 'filebench')
+    no_profile = kwargs.get('no_profile', False)
 
     if cpus:
         set_cpus.set_cpus(cpus)
 
-    lockstat = mfsbase.LockstatProfiler()
-    procstat = mfsbase.ProcStatProfiler()
-    perf = mfsbase.PerfProfiler(perf=PERF, **kwargs)
+    lockstat = None
+    procstat = None
+    perf = None
+    if not no_profile:
+        lockstat = mfsbase.LockstatProfiler()
+        procstat = mfsbase.ProcStatProfiler()
+        perf = mfsbase.PerfProfiler(perf=PERF, **kwargs)
+    else:
+        lockstat = mfsbase.NonProfiler()
+        procstat = mfsbase.NonProfiler()
+        perf = mfsbase.NonProfiler()
+
     lockstat.start()
     procstat.start()
 
@@ -219,6 +229,7 @@ def run_filebench(workload, **kwargs):
           .format(__file__, workload, ndisks, ndirs, basedir, nprocs, nthreads,
                   result_file)
     print(cmd)
+
     perf.start(cmd)
     perf.stop()
     procstat.stop()
@@ -298,7 +309,8 @@ def test_scalability(args):
                                          threads=1, output=output_prefix,
                                          events=args.events,
                                          vmlinux=args.vmlinux,
-                                         kallsyms=args.kallsyms):
+                                         kallsyms=args.kallsyms,
+                                         no_profile=args.no_profile):
                         print('Failed to execute run_filebench')
                         return False
                     check_point.done()
@@ -361,7 +373,8 @@ def test_cpu_scale(args):
                                          threads=1, output=output_prefix,
                                          events=args.events,
                                          vmlinux=args.vmlinux,
-                                         kallsyms=args.kallsyms):
+                                         kallsyms=args.kallsyms,
+                                         no_profile=args.no_profile):
                         set_cpus.reset()
                         print('Failed to execute run_filebench')
                         return False
@@ -393,7 +406,8 @@ def test_numa(args):
                     print('Run NUMA test on CPUs {} for iteration {}'
                           .format(cpus, i))
                     prepare_disks('ramdisks', ndisks, ndirs, fs=fs)
-                    if not run_filebench(wl, cpus=cpus, output=output_prefix):
+                    if not run_filebench(wl, cpus=cpus, output=output_prefix,
+                                         no_profile=args.no_profile):
                         print('Failed to execute run_filebench')
                         return False
     return True
@@ -417,6 +431,8 @@ def main():
                         default=1024, help='set IOSIZE (default: 1024)')
     parser.add_argument('-r', '--run', metavar='NUM', type=int,
                         default=60, help='set run time (default: 60)')
+    parser.add_argument('--no_profile', action='store_true', default=False,
+                        help='disable running profiling tools')
     parser.add_argument('--perf', default='perf',
                         help='set the location of "perf"')
     parser.add_argument('-e', '--events', default='cycles', metavar='EVT,..',

@@ -53,6 +53,21 @@ class Profiler:
         else:
             outfile.write(self.report() + '\n')
 
+class NonProfiler(Profiler):
+    """A Profiler that does nothing.
+    """
+    def start(self, cmd=''):
+        if cmd:
+            call(cmd, shell=True)
+
+    def stop(self):
+        pass
+
+    def dump(self, outfile):
+        pass
+
+    def report(self):
+        pass
 
 class LockstatProfiler(Profiler):
     """The Profiler to get /proc/lock_stat data
