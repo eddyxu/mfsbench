@@ -12,15 +12,15 @@ sys.path.append('../pyro')
 from collections import Counter
 from datetime import datetime
 from multiprocessing import Process, Queue
+from pyro import osutil
 from subprocess import Popen, PIPE
 import argparse
 import mfsbase
-from pyro import osutil
 import re
 import set_cpus
 import shutil
 
-FILE_SYSTEMS = 'ext2,ext4,btrfs'
+FILE_SYSTEMS = 'ext2,ext4,btrfs,xfs'
 WORKLOADS = None
 PERF = 'perf'
 
