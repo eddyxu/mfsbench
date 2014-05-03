@@ -448,7 +448,7 @@ def main():
     parser_scale = subs.add_parser('scale', help='Test scalability by running'
                                    ' multiprocess on all CPUs.')
     parser.add_argument('-p', '--nproc', metavar='nproc',
-                        action=SplitCommaAction, default=range(4, 60, 4),
+                        action=SplitCommaAction, default=range(4, 61, 4),
                         help='sets the number of processes to test.')
     parser_scale.add_argument('-j', '--no-journal', action='store_true',
                               default=False,
