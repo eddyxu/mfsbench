@@ -53,6 +53,7 @@ class Profiler:
         else:
             outfile.write(self.report() + '\n')
 
+
 class NonProfiler(Profiler):
     """A Profiler that does nothing.
     """
@@ -68,6 +69,7 @@ class NonProfiler(Profiler):
 
     def report(self):
         pass
+
 
 class LockstatProfiler(Profiler):
     """The Profiler to get /proc/lock_stat data
@@ -122,7 +124,7 @@ class PerfProfiler(Profiler):
     """Use linux's perf utility to measure the PMU.
     """
     EVENTS = '-e cycles,cache-misses,LLC-load-misses'
-    #EVENTS = '-e cycles'
+    # EVENTS = '-e cycles'
 
     def __init__(self, perf='perf', **kwargs):
         """Constructs a PerfProfiler

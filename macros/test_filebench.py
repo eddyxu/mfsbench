@@ -231,9 +231,12 @@ def run_filebench(workload, **kwargs):
     print(cmd)
 
     perf.start(cmd)
-    perf.stop()
     procstat.stop()
     lockstat.stop()
+
+    # Move PerfProfile.stop() to the last because it generates hunders of MBs
+    # logs, which has significant impact to procstat and lockstat accuracy.
+    perf.stop()
 
     if cpus:
         set_cpus.reset()
@@ -261,6 +264,8 @@ class SplitCommaAction(argparse.Action):
 
 def test_scalability(args):
     """Test scalability of manycore
+
+    @return True if all tasks are finished.
     """
     ndisks = 1
     ndirs = 1
@@ -412,6 +417,11 @@ def test_numa(args):
                         return False
     return True
 
+
+def test_multi_filesystem(args):
+    """Test on multiple file systems.
+    """
+    pass
 
 def main():
     """Filebench tests
