@@ -12,7 +12,7 @@ sys.path.append('../pyro')
 from collections import Counter
 from datetime import datetime
 from multiprocessing import Process, Queue
-from pyro import osutil
+from pyro import osutil, checkpoint
 from subprocess import Popen, PIPE
 import argparse
 import mfsbase
@@ -23,45 +23,6 @@ import shutil
 FILE_SYSTEMS = 'ext2,ext4,btrfs,xfs'
 WORKLOADS = None
 PERF = 'perf'
-
-
-class Checkpoint(object):
-    def __init__(self, logpath):
-        self.steps = 0
-        self.outdir = ''
-        if os.path.exists(logpath):
-            with open(logpath, 'r') as logfile:
-                for line in logfile:
-                    if line.startswith('CHK DONE:'):
-                        fields = line.split()
-                        if len(fields) != 3:
-                            break
-                        self.steps = int(fields[2])
-                    if line.startswith('CHK DIR:'):
-                        fields = line.split()
-                        if len(fields) != 3:
-                            break
-                        self.outdir = fields[2]
-
-        self.logfile = open(logpath, 'a')
-
-    def __del__(self):
-        if self.logfile:
-            self.logfile.close()
-
-    def set_outdir(self, outdir):
-        self.outdir = outdir
-        self.logfile.write('CHK DIR: {}\n'.format(outdir))
-        self.logfile.flush()
-
-    def start(self):
-        self.logfile.write('CHK START: {}\n'.format(self.steps + 1))
-        self.logfile.flush()
-
-    def done(self):
-        self.steps += 1
-        self.logfile.write('CHK DONE: {}\n'.format(self.steps))
-        self.logfile.flush()
 
 
 def avail_workloads():
@@ -271,7 +232,7 @@ def test_scalability(args):
     ndirs = 1
     no_journal = args.no_journal
 
-    check_point = Checkpoint('scale_checkpoint.log')
+    check_point = checkpoint.Checkpoint('scale_checkpoint.log')
     output_dir = ''
     if check_point.outdir:
         output_dir = check_point.outdir
@@ -330,7 +291,7 @@ def test_cpu_scale(args):
     ndirs = 1
     no_journal = args.no_journal
 
-    check_point = Checkpoint('checkpoint.log')
+    check_point = checkpoint.Checkpoint('cpu_checkpoint.log')
     output_dir = ''
     if check_point.outdir:
         output_dir = check_point.outdir
@@ -365,7 +326,7 @@ def test_cpu_scale(args):
                 set_cpus.set_cpus(cpus)
                 for i in range(args.iteration):
                     steps += 1
-                    if check_point.steps >= steps:
+                    if check_point.should_skip(steps):
                         continue
                     check_point.start()
                     print('Run CPU scalability test')
