@@ -4,6 +4,8 @@
 
 import argparse
 import glob
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import os
 import sys
@@ -75,8 +77,8 @@ def plot_scale_figure(dirpath, result, field, xlabel, ext='pdf'):
     """
     outdir = output_dir(dirpath)
     output_prefix = os.path.join(outdir, os.path.basename(dirpath))
-    workload_linestyles = ['-', '--', '-+']
-    colors = ['b', 'r', 'k']
+    workload_linestyles = ['-', '--', '-+', '*']
+    colors = ['b', 'r', 'k', 'y']
     plt.figure()
     for fs, color in zip(result, colors):
         for wl, ls in zip(result[fs], workload_linestyles):
@@ -85,11 +87,11 @@ def plot_scale_figure(dirpath, result, field, xlabel, ext='pdf'):
             for xval in x_values:
                 y_values.append(result[fs, wl, xval, field])
             #print(result[fs, wl])
-            plt.plot(x_values, y_values, ls, label='%s (%s)' % (wl, fs),
+            plt.plot(x_values, y_values, ls, label='%s (%s)' % (wl[0], fs),
                      color=color)
 
     plt.ylim(0)
-    plt.legend()
+    plt.legend(ncol=2)
     plt.xlabel(xlabel)
     plt.ylabel(field)
     plt.title('Filebench Scalability Test')
