@@ -84,7 +84,7 @@ run {}\n""".format(workload, testdir, nfiles, nproc, nthread, iosize, runtime)
     output = stdout.decode('utf-8')
     print(output)
     for line in output.split('\n'):
-        if not 'Summary:' in line:
+        if 'Summary:' not in line:
             continue
         fields = line.split()
         iops = float(fields[6])
@@ -405,6 +405,7 @@ def test_multi_filesystem(args):
     """
     pass
 
+
 def main():
     """Filebench tests
     """
@@ -501,7 +502,7 @@ def main():
     parser_run.set_defaults(func=test_run)
 
     args = parser.parse_args()
-    if not 'func' in args:
+    if 'func' not in args:
         parser.print_help()
         sys.exit(1)
 
