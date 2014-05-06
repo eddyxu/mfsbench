@@ -342,22 +342,30 @@ def test_cpu_scale(args):
                     if check_point.should_skip(steps):
                         continue
                     check_point.start()
+                    retry = args.retry
                     print('Run CPU scalability test')
                     output_prefix = '{}/cpuscale_{}_{}_{}_{}_{}_{}'.format(
                         output_dir, fs, wl, ndisks, ndirs, ncpus, i)
-                    prepare_disks('ramdisks', ndisks, ndirs, fs=fs,
-                                  no_journal=no_journal)
-                    if not run_filebench(wl, ndisks=ndisks, ndirs=ndirs,
-                                         nprocs=nproc,
-                                         threads=1, output=output_prefix,
-                                         events=args.events,
-                                         vmlinux=args.vmlinux,
-                                         kallsyms=args.kallsyms,
-                                         no_profile=args.no_profile):
+                    while retry:
+                        prepare_disks('ramdisks', ndisks, ndirs, fs=fs,
+                                      no_journal=no_journal)
+                        if not run_filebench(wl, ndisks=ndisks, ndirs=ndirs,
+                                             nprocs=nproc,
+                                             threads=1, output=output_prefix,
+                                             events=args.events,
+                                             vmlinux=args.vmlinux,
+                                             kallsyms=args.kallsyms,
+                                             no_profile=args.no_profile):
+                            # set_cpus.reset()
+                            print('Failed to execute run_filebench')
+                            retry -= 1
+                            continue
+                        break
+                    if retry > 0:
+                        check_point.done()
+                    else:
                         set_cpus.reset()
-                        print('Failed to execute run_filebench')
                         return False
-                    check_point.done()
                 set_cpus.reset()
     return True
 
@@ -426,6 +434,8 @@ def main():
                         help='set vmlinux pathname for perf (optional)')
     parser.add_argument('-S', '--kallsyms', default=None, metavar='FILE',
                         help='set kallsyms pathname for perf (optional)')
+    parser.add_argument('-T', '--retry', type=int, metavar='NUM',
+                        default=5, help='Retry hanging benchmark')
 
     subs = parser.add_subparsers()
 
