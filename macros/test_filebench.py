@@ -98,13 +98,14 @@ run {}\n""".format(workload, testdir, nfiles, nproc, nthread, iosize, runtime)
 def test_run(args):
     """Run a single filebench test.
     """
-    start_filebench(workload=args.workload,
-                    ndisks=args.disks,
-                    ndirs=args.dirs,
-                    nprocs=args.process,
-                    nthreads=args.thread,
-                    basedir=args.basedir,
-                    output=args.output)
+    return start_filebench(workload=args.workload,
+                           ndisks=args.disks,
+                           ndirs=args.dirs,
+                           nprocs=args.process,
+                           nthreads=args.thread,
+                           basedir=args.basedir,
+                           output=args.output,
+                           timeout=args.timeout)
 
 
 def start_filebench(**kwargs):
@@ -118,6 +119,9 @@ def start_filebench(**kwargs):
     @param ndirs the number of dirs in one disk.
     @param nprocs the number of processes running in one filebench.
     @param nthreads the number of threads running in one filebench process.
+    @param timeout the time to wait sub filebench process to finish.
+
+    @return True if filebench successfully finished.
     """
     workload = kwargs.get('workload', 'fileserver')
     ndisks = kwargs.get('ndisks', 4)
@@ -127,6 +131,8 @@ def start_filebench(**kwargs):
     basedir = kwargs.get('basedir', 'ramdisks')
     output = kwargs.get('output', None)
     iosize = kwargs.get('iosize', '4k')
+    # the process should finish in 10 minutes
+    join_timeout = kwargs.get('timeout', 600)
 
     q = Queue()
     tasks = []
@@ -140,7 +146,14 @@ def start_filebench(**kwargs):
             task.start()
             tasks.append(task)
     for task in tasks:
-        task.join()
+        task.join(join_timeout)
+        if task.is_alive():
+            # Terminate all tasks and return the benchmark.
+            for t in tasks:
+                if t.is_alive():
+                    t.terminate()
+            return False
+
     counters = Counter()
     while not q.empty():
         rst = q.get()
@@ -152,7 +165,7 @@ def start_filebench(**kwargs):
         with open(output, 'w+') as fobj:
             fobj.write('{} {}\n'.format(counters['iops'],
                                         counters['throughput']))
-    return counters
+    return True
 
 
 def run_filebench(workload, **kwargs):
@@ -471,6 +484,10 @@ def main():
         help='set workload to run.')
     parser_run.add_argument('-o', '--output', metavar='FILE', default=None,
                             help='set the output file.')
+    parser_run.add_argument(
+        '--timeout', metavar='SEC', type=int, default=600,
+        help="set the timeout of waiting process to finish, "
+             "default: %(default)d seconds.")
     parser_run.set_defaults(func=test_run)
 
     args = parser.parse_args()
@@ -484,4 +501,5 @@ def main():
     return args.func(args)
 
 if __name__ == '__main__':
-    main()
+    if not main():
+        sys.exit(1)
