@@ -435,8 +435,8 @@ def main():
                         help='set vmlinux pathname for perf (optional)')
     parser.add_argument('-S', '--kallsyms', default=None, metavar='FILE',
                         help='set kallsyms pathname for perf (optional)')
-    parser.add_argument('-T', '--retry', type=int, metavar='NUM',
-                        default=5, help='Retry hanging benchmark')
+    parser.add_argument('-R', '--retry', type=int, metavar='NUM', default=5,
+                        help='Retry hanging benchmark (default: %(default)d)')
 
     subs = parser.add_subparsers()
 
