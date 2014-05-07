@@ -2,6 +2,8 @@
 #
 # Author: Lei Xu <eddyxu@gmail.com>
 
+from __future__ import print_function
+
 import argparse
 import glob
 import matplotlib
@@ -49,14 +51,14 @@ def plot_numa_result(args):
         fs = fields[1]
         workload = fields[2]
         cpus = fields[5]
-        #iteration = int(fields[6])
+        # iteration = int(fields[6])
         result = fields[7]
-        #print(test, fs, workload, cpus, iteration, result)
+        # print(test, fs, workload, cpus, iteration, result)
         if result == 'results.txt':
             with open(os.path.join(args.dir, filename)) as fobj:
                 line = fobj.readline()
             iops, throughput = map(float, line.split())
-            #print(iops, throughput)
+            # print(iops, throughput)
             if not fb_result[fs, workload, cpus]:
                 fb_result[fs, workload, cpus] = {"iops": [], "throughput": []}
             fb_result[fs, workload, cpus, "iops"].append(iops)
@@ -86,7 +88,7 @@ def plot_scale_figure(dirpath, result, field, xlabel, ext='pdf'):
             y_values = []
             for xval in x_values:
                 y_values.append(result[fs, wl, xval, field])
-            #print(result[fs, wl])
+            # print(result[fs, wl])
             plt.plot(x_values, y_values, ls, label='%s (%s)' % (wl[0], fs),
                      color=color)
 
@@ -127,7 +129,7 @@ def plot_cpuscale_result(args):
     fb_result = analysis.Result()
     for filename in files:
         fields = parse_filename(os.path.basename(filename))
-        #print(fields)
+        # print(fields)
         fs = fields[1]
         workload = fields[2]
         ncpus = int(fields[5])
@@ -158,8 +160,8 @@ def plot_perf_result(args):
         for event in perf_data:
             result[fs, workload, event, nproc] = \
                 {x[2]: x[0] for x in perf_data[event]}
-        #print(filename)
-        #print(result)
+        # print(filename)
+        # print(result)
 
     output_prefix = os.path.join(outdir, os.path.basename(args.dir))
     for fs in result:  # filesystem
@@ -202,12 +204,12 @@ def plot_lock_result(args):
             fields = list(result[fs, wl, first_nproc, first_func].keys())
             for nproc in result[fs, wl]:
                 for field in fields:
-                    if not field in plot_data:
+                    if field not in plot_data:
                         plot_data[field] = {}
                     top_n = 10
                     top_lock_data = perftest.get_top_n_locks(
                         result[fs, wl, nproc], field, top_n)
-                    #print(top_lock_data)
+                    # print(top_lock_data)
                     plot_data[field][nproc] = top_lock_data
             for field in plot_data:
                 top_lock_curves = perftest.trans_top_data_to_curves(
