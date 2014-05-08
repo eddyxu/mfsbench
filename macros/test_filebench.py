@@ -377,26 +377,65 @@ def test_numa(args):
                  '0-2,6-8,12-14,18-20,24-26,30-32,36-38,42-44']
     ndisks = args.disks
     ndirs = args.dirs
+    nproc = 48
 
     # Prepare output disk
-    now = datetime.now()
-    output_dir = 'filebench_numa_' + now.strftime('%Y_%m_%d_%H_%M')
-    if os.path.exists(output_dir):
-        shutil.rmtree(output_dir)
-    os.makedirs(output_dir)
+    check_point = checkpoint.Checkpoint('numa_checkpoint.log')
+    output_dir = ''
+    if check_point.outdir:
+        output_dir = check_point.outdir
+    else:
+        now = datetime.now()
+        output_dir = 'filebench_numa_' + now.strftime('%Y_%m_%d_%H_%M')
+        if os.path.exists(output_dir):
+            shutil.rmtree(output_dir)
+        os.makedirs(output_dir)
+        check_point.set_outdir(output_dir)
+
+    test_conf = {
+        'test': 'numa',
+        'filesystems': args.formats,
+        'workloads': args.workloads,
+        'iteration': args.iteration,
+        'ndisks': ndisks,
+        'ndirs': ndirs,
+        'mount_options': 'noatime,nodirtime',
+    }
+    mfsbase.dump_configure(test_conf, os.path.join(output_dir, 'testmeta.txt'))
+
+    steps = 0
     for fs in args.formats.split(','):
         for wl in args.workloads.split(','):
             for cpus in CPU_CONFS:
+                set_cpus.set_cpus(cpus)
                 for i in range(args.iteration):
+                    steps += 1
+                    if check_point.should_skip(steps):
+                        continue
+                    check_point.start()
                     output_prefix = '{}/numa_{}_{}_{}_{}_{}_{}'.format(
                         output_dir, fs, wl, ndisks, ndirs, cpus, i)
                     print('Run NUMA test on CPUs {} for iteration {}'
                           .format(cpus, i))
-                    prepare_disks('ramdisks', ndisks, ndirs, fs=fs)
-                    if not run_filebench(wl, cpus=cpus, output=output_prefix,
+                    retry = args.retry
+                    while retry:
+                        prepare_disks('ramdisks', ndisks, ndirs, fs=fs,
+                                      no_journal=args.no_journal)
+                        if run_filebench(wl, ndisks=ndisks, ndirs=ndirs,
+                                         nprocs=nproc,
+                                         threads=1, output=output_prefix,
+                                         events=args.events,
+                                         vmlinux=args.vmlinux,
+                                         kallsyms=args.kallsyms,
                                          no_profile=args.no_profile):
+                            break
                         print('Failed to execute run_filebench')
+                        retry -= 1
+                    if not retry:
+                        set_cpus.reset()
                         return False
+                    check_point.done()
+            set_cpus.reset()
     return True
 
 
@@ -426,6 +465,8 @@ def main():
                         default=60, help='set run time (default: 60)')
     parser.add_argument('--no_profile', action='store_true', default=False,
                         help='disable running profiling tools')
+    parser.add_argument('-j', '--no-journal', action='store_true',
+                        default=False, help='turn off journaling on ext4.')
     parser.add_argument('--perf', default='perf',
                         help='set the location of "perf"')
     parser.add_argument('-e', '--events', default='cycles', metavar='EVT,..',
@@ -445,9 +486,6 @@ def main():
     parser.add_argument('-p', '--nproc', metavar='nproc',
                         action=SplitCommaAction, default=range(4, 61, 4),
                         help='sets the number of processes to test.')
-    parser_scale.add_argument('-j', '--no-journal', action='store_true',
-                              default=False,
-                              help='turn off journaling on ext4.')
     parser_scale.set_defaults(func=test_scalability)
 
     # Options for sub-command 'cpuscale'
@@ -458,9 +496,6 @@ def main():
         '-c', '--cpus', metavar='cpus', action=SplitCommaAction,
         default=range(4, 49, 4),
         help='sets the number of activate CPUs to test.')
-    parser_cpuscale.add_argument('-j', '--no-journal', action='store_true',
-                                 default=False,
-                                 help='turn off journaling on ext4.')
     parser_cpuscale.add_argument(
         '-p', '--process', type=int, metavar='NUM',
         default=128, help='set the number of processes (default: %(default)d)')
@@ -471,7 +506,7 @@ def main():
 
     parser_numa = subs.add_parser('numa', help='Test NUMA architecture.')
     parser_numa.add_argument('-n', '--disks', type=int, metavar='NUM',
-                             default=4, help='set the number of disks to run.')
+                             default=1, help='set the number of disks to run.')
     parser_numa.add_argument(
         '-N', '--dirs', type=int, metavar='NUM', default=1,
         help='set the number of directories in each disk.')
