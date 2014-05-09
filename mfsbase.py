@@ -5,6 +5,7 @@
 """Base library for manycore filesystem benchmark.
 """
 
+from __future__ import print_function
 import os
 import sys
 from subprocess import call, check_output
@@ -167,34 +168,6 @@ class PerfProfiler(Profiler):
         self.report_ = check_output(
             '{} report {} --stdio'.format(self.perf, options),
             shell=True).decode('utf-8')
-
-    def report(self):
-        return self.report_
-
-
-class OProfiler(Profiler):
-    """Use oprofiler
-    """
-    EVENTS = '--event=L3_CACHE_MISSES:500'
-
-    def __init__(self, vmlinux='', events=''):
-        self.vmlinux = vmlinux
-        if events:
-            self.EVENTS = events
-
-    def start(self):
-        call('opcontrol --reset', shell=True)
-        call('opcontrol --init', shell=True)
-        if self.vmlinux:
-            call('opcontrol --vmlinux={}'.format(self.vmlinux))
-        if self.EVENTS:
-            call('opcontrol --setup --separate=none {}' % self.events)
-        call('opcontrol --start')
-
-    def stop(self):
-        call('opcontrol --dump')
-        call('opcontrol --stop')
-        self.report_ = check_output('opreport -cl', shell=True).decode('utf-8')
 
     def report(self):
         return self.report_
