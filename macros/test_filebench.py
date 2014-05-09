@@ -236,6 +236,22 @@ class SplitCommaAction(argparse.Action):
         setattr(namespace, self.dest, int_fields)
 
 
+def create_checkpoint(filename, outdir_pre):
+    """Creates a Checkpoint instance with output directory appropriated set up.
+    """
+    check_point = checkpoint.Checkpoint(filename)
+    output_dir = ''
+    if check_point.outdir:
+        output_dir = check_point.outdir
+    else:
+        now = datetime.now()
+        output_dir = outdir_pre + now.strftime('%Y_%m_%d_%H_%M')
+        if os.path.exists(output_dir):
+            shutil.rmtree(output_dir)
+        os.makedirs(output_dir)
+        check_point.set_outdir(output_dir)
+
+
 def test_scalability(args):
     """Test scalability of manycore
 
@@ -442,7 +458,60 @@ def test_numa(args):
 def test_multi_filesystem(args):
     """Test on multiple file systems.
     """
-    pass
+    ndisks = args.disks
+    ndirs = args.dirs
+    nprocs = 96
+    check_point = create_checkpoint('multifs_checkpoint.log',
+                                    'filebench_multifs')
+
+    test_conf = {
+        'test': 'multi_filesystem',
+        'filesystems': args.formats,
+        'workloads': args.workloads,
+        'iteration': args.iteration,
+        'ndisks': ndisks,
+        'ndirs': ndirs,
+        'mount_options': 'noatime,nodirtime',
+    }
+    mfsbase.dump_configure(test_conf,
+                           os.path.join(check_point.outdir, 'testmeta.txt'))
+
+    steps = 0
+    for fs in args.formats.split(','):
+        for wl in args.workloads.split(','):
+            for num_disks in range(1, ndisks + 1):
+                for num_dirs in range(1, ndirs + 1):
+                    for i in range(args.iteration):
+                        steps += 1
+                        if check_point.should_skip(steps):
+                            continue
+                        check_point.start()
+                        retry = args.retry
+                        print("Run multi-filesystem test: " +
+                              "{} disk {} dirs".format(num_disks, num_dirs))
+                        output_prefix = '{}/multifs_{}_{}_{}_{}_{}_{}'.format(
+                            check_point.output_dir, fs, wl, ndisks, ndirs,
+                            nprocs, i)
+                        while retry:
+                            prepare_disks('ramdisks', ndisks, ndirs, fs=fs,
+                                          no_journal=args.no_journal)
+                            if not run_filebench(
+                                    wl, ndisks=ndisks, ndirs=ndirs,
+                                    nprocs=nprocs, threads=1,
+                                    output=output_prefix,
+                                    events=args.events,
+                                    vmlinux=args.vmlinux,
+                                    kallsyms=args.kallsyms,
+                                    no_profile=args.no_profile):
+                                print('Failed to execute run_filebench')
+                                retry -= 1
+                                continue
+                            break
+                        if retry > 0:
+                            check_point.done()
+                        else:
+                            return False
+    return True
 
 
 def main():
@@ -511,6 +580,9 @@ def main():
         '-N', '--dirs', type=int, metavar='NUM', default=1,
         help='set the number of directories in each disk.')
     parser_numa.set_defaults(func=test_numa)
+
+    parser_multifs = subs.add_parser('multifs', help='Test multi-filesystem.')
+    parser_multifs.set_defaults(func=test_multi_filesystem)
 
     parser_run = subs.add_parser('run', help='Test run filebench directly.')
     parser_run.add_argument('-n', '--disks', type=int, metavar='NUM',
