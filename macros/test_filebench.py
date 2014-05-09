@@ -494,8 +494,8 @@ def test_multi_filesystem(args):
                             check_point.outdir, fs, wl, ndisks, ndirs,
                             nprocs, i)
                         while retry:
-                            prepare_disks('ramdisks', num_disks, num_dirs, fs=fs,
-                                          no_journal=args.no_journal)
+                            prepare_disks('ramdisks', num_disks, num_dirs,
+                                          fs=fs, no_journal=args.no_journal)
                             if not run_filebench(
                                     wl, ndisks=num_disks, ndirs=num_dirs,
                                     nprocs=nprocs, threads=1,
