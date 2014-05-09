@@ -250,6 +250,7 @@ def create_checkpoint(filename, outdir_pre):
             shutil.rmtree(output_dir)
         os.makedirs(output_dir)
         check_point.set_outdir(output_dir)
+    return check_point
 
 
 def test_scalability(args):
@@ -458,8 +459,8 @@ def test_numa(args):
 def test_multi_filesystem(args):
     """Test on multiple file systems.
     """
-    ndisks = args.disks
-    ndirs = args.dirs
+    ndisks = 4
+    ndirs = 1
     nprocs = 96
     check_point = create_checkpoint('multifs_checkpoint.log',
                                     'filebench_multifs')
@@ -490,13 +491,13 @@ def test_multi_filesystem(args):
                         print("Run multi-filesystem test: " +
                               "{} disk {} dirs".format(num_disks, num_dirs))
                         output_prefix = '{}/multifs_{}_{}_{}_{}_{}_{}'.format(
-                            check_point.output_dir, fs, wl, ndisks, ndirs,
+                            check_point.outdir, fs, wl, ndisks, ndirs,
                             nprocs, i)
                         while retry:
-                            prepare_disks('ramdisks', ndisks, ndirs, fs=fs,
+                            prepare_disks('ramdisks', num_disks, num_dirs, fs=fs,
                                           no_journal=args.no_journal)
                             if not run_filebench(
-                                    wl, ndisks=ndisks, ndirs=ndirs,
+                                    wl, ndisks=num_disks, ndirs=num_dirs,
                                     nprocs=nprocs, threads=1,
                                     output=output_prefix,
                                     events=args.events,
