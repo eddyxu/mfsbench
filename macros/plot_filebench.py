@@ -13,6 +13,7 @@ import os
 import sys
 sys.path.append('../pyro')
 from pyro import analysis, perftest, plot
+import numpy as np
 
 
 def parse_filename(filename):
@@ -211,6 +212,12 @@ def plot_perf_result(args):
 def plot_lock_result(args):
     """Plot lockstat results
     """
+    def _merge_lock_data(curves_by_name, key, lc):
+        if key not in curves_by_name:
+            curves_by_name[key] = (lc[0], np.array(lc[1]), key)
+        else:
+            curves_by_name[key] = (lc[0], curves_by_name[key][1] + lc[1], key)
+
     outdir = output_dir(args.dir)
     files = glob.glob(args.dir + '/*_lockstat.txt')
     result = analysis.Result()
@@ -249,11 +256,30 @@ def plot_lock_result(args):
             for field in plot_data:
                 top_lock_curves = perftest.trans_top_data_to_curves(
                     plot_data[field], top_n=5)
-                if not top_lock_curves:
+                #if not top_lock_curves:
+                #    continue
+                top_curves_by_name = {}
+                for lc in top_lock_curves:
+                    if lc[2].startswith('cpufreq_'):
+                        continue
+                    if ')' in lc[2]:
+                        lc = (lc[0], lc[1], lc[2].split(')')[0])
+
+                    key = lc[2]
+                    if lc[2].startswith('dentry->'):
+                        key = key.split('.')[0]
+                    elif lc[2].startswith('journal->j_state_lock'):
+                        key = 'journal->j_state_lock'
+                    elif key.startswith('type->i_mutex_dir_key'):
+                        key = 'i_mutex_dir_key'
+                    _merge_lock_data(top_curves_by_name, key, lc)
+                top_curves = list(top_curves_by_name.values())
+                #print(top_curves)
+                if not top_curves:
                     continue
                 outfile = output_prefix + \
                     '_%s_%s_%s_lockstat.%s' % (fs, wl, field, args.ext)
-                plot.plot(top_lock_curves, 'Lockstat (%s)' % field,
+                plot.plot(top_curves, 'Lockstat (%s)' % field,
                           xlabel, ylabel, outfile)
 
 
@@ -275,7 +301,7 @@ def main():
     elif fields[1] == 'cpuscale':
         plot_cpuscale_result(args)
 
-    plot_perf_result(args)
+    #plot_perf_result(args)
     plot_lock_result(args)
 
 
