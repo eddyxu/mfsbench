@@ -112,11 +112,13 @@ def plot_scale_figure(dirpath, result, field, xlabel, ext='pdf'):
 
 
 def plot_per_workload_scale_figure(dirpath, result, wl, field, xlabel, ext):
+    """Draw figure for each workload
+    """
     outdir = output_dir(dirpath)
     output_prefix = os.path.join(outdir, os.path.basename(dirpath))
     linestyles = ['-', '--', '-+', '-*']
     plt.figure()
-    for fs, ls in zip(result, linestyles):
+    for fs, ls in zip(sorted(result.keys()), linestyles):
         x_values = sorted(result[fs, wl].keys())
         y_values = []
         for xval in x_values:
@@ -125,7 +127,7 @@ def plot_per_workload_scale_figure(dirpath, result, wl, field, xlabel, ext):
         plt.plot(x_values, y_values, ls, label='%s' % fs, color='k')
 
     plt.ylim(0)
-    plt.legend(ncol=2)
+    plt.legend(ncol=2, prop={'size': 20})
     plt.xlabel(xlabel)
     plt.ylabel(field)
     plt.title('Filebench Scalability Test (%s)' % wl)
