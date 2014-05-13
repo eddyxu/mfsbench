@@ -83,7 +83,7 @@ def plot_scale_figure(dirpath, result, field, xlabel, ext='pdf'):
     colors = ['b', 'r', 'k', 'y']
     plt.figure()
     for fs, color in zip(result, colors):
-        for wl, ls in zip(result[fs], workload_linestyles):
+        for wl, ls in zip(sorted(result[fs].keys()), workload_linestyles):
             x_values = sorted(result[fs, wl].keys())
             y_values = []
             for xval in x_values:
@@ -97,7 +97,40 @@ def plot_scale_figure(dirpath, result, field, xlabel, ext='pdf'):
     plt.xlabel(xlabel)
     plt.ylabel(field)
     plt.title('Filebench Scalability Test')
-    plt.savefig(output_prefix + '_' + field + '.' + ext)
+    plt.savefig(output_prefix + '_' + field.lower() + '.' + ext)
+    plt.close()
+
+    if result:
+        workloads = []
+        for fs in result:
+            workloads = sorted(result[fs].keys())
+            break
+        assert workloads
+        for wl in workloads:
+            plot_per_workload_scale_figure(dirpath, result, wl,
+                                           field, xlabel, ext)
+
+
+def plot_per_workload_scale_figure(dirpath, result, wl, field, xlabel, ext):
+    outdir = output_dir(dirpath)
+    output_prefix = os.path.join(outdir, os.path.basename(dirpath))
+    linestyles = ['-', '--', '-+', '-*']
+    plt.figure()
+    for fs, ls in zip(result, linestyles):
+        x_values = sorted(result[fs, wl].keys())
+        y_values = []
+        for xval in x_values:
+            y_values.append(result[fs, wl, xval, field])
+            # print(result[fs, wl])
+        plt.plot(x_values, y_values, ls, label='%s' % fs, color='k')
+
+    plt.ylim(0)
+    plt.legend(ncol=2)
+    plt.xlabel(xlabel)
+    plt.ylabel(field)
+    plt.title('Filebench Scalability Test (%s)' % wl)
+    plt.savefig(output_prefix + '_' + wl + '_' + field.lower() + '.' + ext)
+    plt.close()
 
 
 def plot_scale_result(args):
