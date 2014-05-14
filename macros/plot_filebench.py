@@ -300,8 +300,12 @@ def main():
         plot_scale_result(args)
     elif fields[1] == 'cpuscale':
         plot_cpuscale_result(args)
+    elif fields[1] == 'multifs':
+        # plot_multifs_result(args)
+        pass
 
-    #plot_perf_result(args)
+
+    plot_perf_result(args)
     plot_lock_result(args)
 
 
