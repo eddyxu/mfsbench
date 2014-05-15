@@ -101,7 +101,7 @@ def plot_numa_result(args):
             plt.title('Filebench NUMA Test (%s)' % fs)
 
             figure_file = os.path.join(
-                  outdir, 'numa_' + fs + '_' + measure + '.pdf')
+                outdir, 'numa_' + fs + '_' + measure + '.pdf')
             plt.savefig(figure_file)
             plt.close()
 
@@ -288,7 +288,7 @@ def plot_lock_result(args):
             for field in plot_data:
                 top_lock_curves = perftest.trans_top_data_to_curves(
                     plot_data[field], top_n=5)
-                #if not top_lock_curves:
+                # if not top_lock_curves:
                 #    continue
                 top_curves_by_name = {}
                 for lc in top_lock_curves:
@@ -306,7 +306,7 @@ def plot_lock_result(args):
                         key = 'i_mutex_dir_key'
                     _merge_lock_data(top_curves_by_name, key, lc)
                 top_curves = list(top_curves_by_name.values())
-                #print(top_curves)
+                # print(top_curves)
                 if not top_curves:
                     continue
                 outfile = output_prefix + \
@@ -336,7 +336,6 @@ def main():
     elif fields[1] == 'multifs':
         # plot_multifs_result(args)
         pass
-
 
     plot_perf_result(args)
     plot_lock_result(args)
