@@ -104,7 +104,6 @@ def plot_numa_result(args):
                   outdir, 'numa_' + fs + '_' + measure + '.pdf')
             plt.savefig(figure_file)
             plt.close()
-    #plt.savefig(output_prefix + "_iops.pdf")
 
 
 def plot_scale_figure(dirpath, result, field, xlabel, ext='pdf'):
