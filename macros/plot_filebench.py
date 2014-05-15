@@ -44,11 +44,11 @@ def output_dir(input_dir):
 def plot_numa_result(args):
     """Plot NUMA results.
     """
-    files = os.listdir(args.dir)
+    outdir = output_dir(args.dir)
+    files = glob.glob(args.dir + '/*_results.txt')
     fb_result = analysis.Result()  # filebench result
     for filename in files:
-        fields = parse_filename(filename)
-        test = fields[0]
+        fields = parse_filename(os.path.basename(filename))
         fs = fields[1]
         workload = fields[2]
         cpus = fields[5]
@@ -56,7 +56,7 @@ def plot_numa_result(args):
         result = fields[7]
         # print(test, fs, workload, cpus, iteration, result)
         if result == 'results.txt':
-            with open(os.path.join(args.dir, filename)) as fobj:
+            with open(filename) as fobj:
                 line = fobj.readline()
             iops, throughput = map(float, line.split())
             # print(iops, throughput)
@@ -64,14 +64,47 @@ def plot_numa_result(args):
                 fb_result[fs, workload, cpus] = {"iops": [], "throughput": []}
             fb_result[fs, workload, cpus, "iops"].append(iops)
             fb_result[fs, workload, cpus, "throughput"].append(throughput)
-    print(fb_result)
-    print(fb_result.keys())
+    # print(fb_result)
+    # print(fb_result.keys())
 
-    output_prefix = args.dir
     plt.figure()
+    numa_cpus = ['0-23', '0-11,24-35', '0-5,12-17,24-29,36-41',
+                 '0-2,6-8,12-14,18-20,24-26,30-32,36-38,42-44']
     for fs in fb_result:
-        print(fs, fb_result[fs])
-    plt.savefig(output_prefix + "_iops.pdf")
+        for measure in ['iops', 'throughput']:
+            bars = []
+            plt.figure()
+            for wl in fb_result[fs]:
+                # print(fs, fb_result[fs])
+                y_values = np.array(
+                    [np.average(fb_result[fs, wl, cpus, measure])
+                     for cpus in numa_cpus])
+                y_values /= y_values[0]
+                bars += list(y_values)
+            num_wl = len(fb_result[fs])
+            x_values = np.array([0.1 + i for i in range(num_wl)])
+            width = 0.2
+            hatches = ['', '/', 'x', '-']
+            labels = ['a', 'b', 'c', 'd']
+            for i, h, l in zip(range(len(numa_cpus)), hatches, labels):
+                plt.bar(x_values, bars[i::len(numa_cpus)], width=width,
+                        color='w', hatch=h, label=l)
+                x_values += width
+            xticks = [0.5 + i for i in range(num_wl)]
+            plt.xticks(xticks, list(fb_result[fs].keys()))
+            plt.ylim(0, 1.32)
+            plt.legend(ncol=2, loc='best')
+            if measure == 'iops':
+                plt.ylabel('Relative IOPS')
+            else:
+                plt.ylabel('Relative Throughput')
+            plt.title('Filebench NUMA Test (%s)' % fs)
+
+            figure_file = os.path.join(
+                  outdir, 'numa_' + fs + '_' + measure + '.pdf')
+            plt.savefig(figure_file)
+            plt.close()
+    #plt.savefig(output_prefix + "_iops.pdf")
 
 
 def plot_scale_figure(dirpath, result, field, xlabel, ext='pdf'):
@@ -296,6 +329,7 @@ def main():
     fields = parse_filename(args.dir)
     if fields[1] == 'numa':
         plot_numa_result(args)
+        return
     elif fields[1] == 'scale':
         plot_scale_result(args)
     elif fields[1] == 'cpuscale':
