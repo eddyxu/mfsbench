@@ -245,7 +245,7 @@ def create_checkpoint(filename, outdir_pre):
         output_dir = check_point.outdir
     else:
         now = datetime.now()
-        output_dir = outdir_pre + now.strftime('%Y_%m_%d_%H_%M')
+        output_dir = outdir_pre + '_' + now.strftime('%Y_%m_%d_%H_%M')
         if os.path.exists(output_dir):
             shutil.rmtree(output_dir)
         os.makedirs(output_dir)
@@ -397,18 +397,7 @@ def test_numa(args):
     nproc = 48
 
     # Prepare output disk
-    check_point = checkpoint.Checkpoint('numa_checkpoint.log')
-    output_dir = ''
-    if check_point.outdir:
-        output_dir = check_point.outdir
-    else:
-        now = datetime.now()
-        output_dir = 'filebench_numa_' + now.strftime('%Y_%m_%d_%H_%M')
-        if os.path.exists(output_dir):
-            shutil.rmtree(output_dir)
-        os.makedirs(output_dir)
-        check_point.set_outdir(output_dir)
-
+    check_point = create_checkpoint('numa_checkpoint.log', 'filebench_numa')
     test_conf = {
         'test': 'numa',
         'filesystems': args.formats,
@@ -418,7 +407,8 @@ def test_numa(args):
         'ndirs': ndirs,
         'mount_options': 'noatime,nodirtime',
     }
-    mfsbase.dump_configure(test_conf, os.path.join(output_dir, 'testmeta.txt'))
+    mfsbase.dump_configure(test_conf,
+                           os.path.join(check_point.outdir, 'testmeta.txt'))
 
     steps = 0
     for fs in args.formats.split(','):
@@ -431,7 +421,7 @@ def test_numa(args):
                         continue
                     check_point.start()
                     output_prefix = '{}/numa_{}_{}_{}_{}_{}_{}'.format(
-                        output_dir, fs, wl, ndisks, ndirs, cpus, i)
+                        check_point.outdir, fs, wl, ndisks, ndirs, cpus, i)
                     print('Run NUMA test on CPUs {} for iteration {}'
                           .format(cpus, i))
                     retry = args.retry
