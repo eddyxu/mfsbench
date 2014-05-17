@@ -106,6 +106,13 @@ def plot_numa_result(args):
             plt.close()
 
 
+def plot_multifs_result(args):
+    """Plot Multi-filesystem results.
+    """
+    outdir = output_dir(args.dir)
+    files = glob.glob(args.dir + '/*_results.txt')
+    print(files)
+
 def plot_scale_figure(dirpath, result, field, xlabel, ext='pdf'):
     """
     @param field "iops" or "throughput"
@@ -334,8 +341,11 @@ def main():
     elif fields[1] == 'cpuscale':
         plot_cpuscale_result(args)
     elif fields[1] == 'multifs':
-        # plot_multifs_result(args)
-        pass
+        plot_multifs_result(args)
+        return
+    else:
+        print('Unknown test: %s' % fields[1])
+        return
 
     plot_perf_result(args)
     plot_lock_result(args)
