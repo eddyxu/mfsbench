@@ -481,7 +481,7 @@ def test_multi_filesystem(args):
                         print("Run multi-filesystem test: " +
                               "{} disk {} dirs".format(num_disks, num_dirs))
                         output_prefix = '{}/multifs_{}_{}_{}_{}_{}_{}'.format(
-                            check_point.outdir, fs, wl, ndisks, ndirs,
+                            check_point.outdir, fs, wl, num_disks, ndirs,
                             nprocs, i)
                         while retry:
                             prepare_disks('ramdisks', num_disks, num_dirs,

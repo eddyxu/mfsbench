@@ -67,7 +67,6 @@ def plot_numa_result(args):
     # print(fb_result)
     # print(fb_result.keys())
 
-    plt.figure()
     numa_cpus = ['0-23', '0-11,24-35', '0-5,12-17,24-29,36-41',
                  '0-2,6-8,12-14,18-20,24-26,30-32,36-38,42-44']
     for fs in fb_result:
@@ -80,6 +79,8 @@ def plot_numa_result(args):
                     [np.average(fb_result[fs, wl, cpus, measure])
                      for cpus in numa_cpus])
                 y_values /= y_values[0]
+                if args.verbose:
+                    print("{} {} {} {}".format(fs, wl, measure, y_values))
                 bars += list(y_values)
             num_wl = len(fb_result[fs])
             x_values = np.array([0.1 + i for i in range(num_wl)])
@@ -111,7 +112,40 @@ def plot_multifs_result(args):
     """
     outdir = output_dir(args.dir)
     files = glob.glob(args.dir + '/*_results.txt')
-    print(files)
+    result = analysis.Result()
+    for filename in files:
+        fields = parse_filename(os.path.basename(filename))
+        fs = fields[1]
+        workload = fields[2]
+        ndisks = int(fields[3])
+        with open(filename) as fobj:
+            line = fobj.readline()
+        iops, throughput = map(float, line.split())
+        if not result[fs, workload, ndisks]:
+            result[fs, workload, ndisks] = {'iops': [], 'throughput': []}
+        result[fs, workload, ndisks, 'iops'].append(iops)
+        result[fs, workload, ndisks, 'throughput'].append(throughput)
+
+    for fs in result:
+        for measure in ['iops', 'throughput']:
+            plt.figure()
+            for wl in sorted(result[fs].keys()):
+                x_values = sorted(result[fs, wl].keys())
+                y_values = [result[fs, wl, x, measure] for x in x_values]
+                plt.plot(x_values, y_values, label=wl)
+            plt.ylim(0)
+            plt.xlim(0, 5)
+            plt.xlabel('Number of File Systems')
+            if measure == 'iops':
+                plt.ylabel('IOPS')
+            else:
+                plt.ylabel('Throughput (MB/s)')
+
+            plt.xticks(x_values, x_values)
+            plt.legend(loc='best')
+            plt.title('Multi-Filesystem Test')
+            plt.savefig(outdir + '/multifs_' + fs + '_' + measure + '.pdf')
+            plt.close()
 
 def plot_scale_figure(dirpath, result, field, xlabel, ext='pdf'):
     """
@@ -330,6 +364,7 @@ def main():
                         help='Sets the filebench result directory.')
     parser.add_argument('-e', '--ext', metavar='EXT', default='pdf',
                         help='Sets the extension of output file (pdf)')
+    parser.add_argument('--verbose', default=False, action='store_true')
     args = parser.parse_args()
 
     fields = parse_filename(args.dir)
