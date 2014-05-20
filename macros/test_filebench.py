@@ -65,10 +65,12 @@ def prepare_disks(mntdir, ndisks, ndirs, **kwargs):
 
 
 def filebench_task(queue, workload, testdir, nfiles, nproc, nthread, iosize,
-                   **kwargs):
+                   kwargs):
     """Run filebench in a separate process.
     """
     runtime = kwargs.get('runtime', 60)
+    cpus = kwargs.get('cpus', '')
+
     conf = """
 load workloads/{}
 set $dir={}
@@ -79,7 +81,11 @@ set $iosize={}
 set $meanappendsize=4k
 run {}\n""".format(workload, testdir, nfiles, nproc, nthread, iosize, runtime)
     print('Filebench confs: {}'.format(conf))
-    p = Popen('filebench', stdin=PIPE, stdout=PIPE, stderr=PIPE)
+    cmd = 'filebench'
+    if cpus:
+        cmd = 'taskset -c %s filebench' % cpus
+    cmd = cmd.split()
+    p = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
     stdout, stderr = p.communicate(conf.encode('utf-8'))
     output = stdout.decode('utf-8')
     print(output)
@@ -105,7 +111,8 @@ def test_run(args):
                            nthreads=args.thread,
                            basedir=args.basedir,
                            output=args.output,
-                           timeout=args.timeout)
+                           timeout=args.timeout,
+                           affinity=args.affinity)
 
 
 def start_filebench(**kwargs):
@@ -133,16 +140,25 @@ def start_filebench(**kwargs):
     iosize = kwargs.get('iosize', '4k')
     # the process should finish in 10 minutes
     join_timeout = kwargs.get('timeout', 600)
+    affinity = kwargs.get('affinity', False)
 
     q = Queue()
     tasks = []
+    total_tasks = ndisks * ndirs
+    i = 0
     for disk in range(ndisks):
         for testdir in range(ndirs):
             testdir_path = os.path.join(basedir, 'ram{}'.format(disk),
                                         'test{}'.format(testdir))
+            args = {'cpus': ''}
+            if affinity:
+                cpu_seq = 48 / total_tasks # use total_cpus() to get 48
+                args['cpus'] = "%d-%d" % (cpu_seq * i , cpu_seq * (i + 1) - 1)
+                print('CPUs: ', args['cpus'])
+                i += 1
             task = Process(target=filebench_task,
                            args=(q, workload, testdir_path, 10000, nprocs,
-                                 nthreads, iosize))
+                                 nthreads, iosize, args))
             task.start()
             tasks.append(task)
     for task in tasks:
@@ -179,6 +195,7 @@ def run_filebench(workload, **kwargs):
     nthreads = kwargs.get('nthreads', 1)
     output = kwargs.get('output', 'filebench')
     no_profile = kwargs.get('no_profile', False)
+    affinity = kwargs.get('affinity', False)
 
     if cpus:
         set_cpus.set_cpus(cpus)
@@ -202,6 +219,8 @@ def run_filebench(workload, **kwargs):
     cmd = '{} run -w {} --disks {} --dirs {} -b {} -p {} -t {} -o {}' \
           .format(__file__, workload, ndisks, ndirs, basedir, nprocs, nthreads,
                   result_file)
+    if affinity:
+        cmd += ' --affinity'
     print(cmd)
 
     perf.start(cmd)
@@ -482,7 +501,7 @@ def test_multi_filesystem(args):
                               "{} disk {} dirs".format(num_disks, num_dirs))
                         output_prefix = '{}/multifs_{}_{}_{}_{}_{}_{}'.format(
                             check_point.outdir, fs, wl, num_disks, ndirs,
-                            nprocs, i)
+                            nprocs / num_disks, i)
                         while retry:
                             prepare_disks('ramdisks', num_disks, num_dirs,
                                           fs=fs, no_journal=args.no_journal)
@@ -493,7 +512,8 @@ def test_multi_filesystem(args):
                                     events=args.events,
                                     vmlinux=args.vmlinux,
                                     kallsyms=args.kallsyms,
-                                    no_profile=args.no_profile):
+                                    no_profile=args.no_profile,
+                                    affinity=True):
                                 print('Failed to execute run_filebench')
                                 retry -= 1
                                 continue
@@ -597,6 +617,8 @@ def main():
         '--timeout', metavar='SEC', type=int, default=600,
         help="set the timeout of waiting process to finish, "
              "default: %(default)d seconds.")
+    parser_run.add_argument('--affinity', action='store_true', default=False,
+                            help='set CPU affinity for each group of threads')
     parser_run.set_defaults(func=test_run)
 
     args = parser.parse_args()
