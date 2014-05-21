@@ -468,7 +468,6 @@ def test_numa(args):
 def test_multi_filesystem(args):
     """Test on multiple file systems.
     """
-    ndisks = 4
     ndirs = 1
     nprocs = 96
     check_point = create_checkpoint('multifs_checkpoint.log',
@@ -479,7 +478,7 @@ def test_multi_filesystem(args):
         'filesystems': args.formats,
         'workloads': args.workloads,
         'iteration': args.iteration,
-        'ndisks': ndisks,
+        'ndisks': args.ndisks,
         'ndirs': ndirs,
         'mount_options': 'noatime,nodirtime',
     }
@@ -489,7 +488,7 @@ def test_multi_filesystem(args):
     steps = 0
     for fs in args.formats.split(','):
         for wl in args.workloads.split(','):
-            for num_disks in range(1, ndisks + 1):
+            for num_disks in args.ndisks:
                 for num_dirs in range(1, ndirs + 1):
                     for i in range(args.iteration):
                         steps += 1
@@ -593,6 +592,9 @@ def main():
     parser_numa.set_defaults(func=test_numa)
 
     parser_multifs = subs.add_parser('multifs', help='Test multi-filesystem.')
+    parser_multifs.add_argument('--ndisks', metavar='NUM',
+                                action=SplitCommaAction, default=range(1, 5),
+                                help='sets the number of disks to run')
     parser_multifs.set_defaults(func=test_multi_filesystem)
 
     parser_run = subs.add_parser('run', help='Test run filebench directly.')

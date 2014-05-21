@@ -132,7 +132,7 @@ def plot_multifs_result(args):
             for wl in sorted(result[fs].keys()):
                 x_values = sorted(result[fs, wl].keys())
                 y_values = [result[fs, wl, x, measure] for x in x_values]
-                plt.plot(x_values, y_values, label=wl)
+                plt.plot(x_values, y_values, label=wl, marker='+')
             plt.ylim(0)
             plt.xlim(0, 5)
             plt.xlabel('Number of File Systems')
