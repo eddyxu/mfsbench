@@ -500,7 +500,7 @@ def test_multi_filesystem(args):
                               "{} disk {} dirs".format(num_disks, num_dirs))
                         output_prefix = '{}/multifs_{}_{}_{}_{}_{}_{}'.format(
                             check_point.outdir, fs, wl, num_disks, ndirs,
-                            nprocs / num_disks, i)
+                            int(nprocs / num_disks), i)
                         while retry:
                             prepare_disks('ramdisks', num_disks, num_dirs,
                                           fs=fs, no_journal=args.no_journal)

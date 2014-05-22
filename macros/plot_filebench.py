@@ -143,9 +143,10 @@ def plot_multifs_result(args):
 
             plt.xticks(x_values, x_values)
             plt.legend(loc='best')
-            plt.title('Multi-Filesystem Test')
+            plt.title('Multi-Filesystem Test (%s)' % fs)
             plt.savefig(outdir + '/multifs_' + fs + '_' + measure + '.pdf')
             plt.close()
+
 
 def plot_scale_figure(dirpath, result, field, xlabel, ext='pdf'):
     """
@@ -258,28 +259,37 @@ def plot_perf_result(args):
     outdir = output_dir(args.dir)
     files = glob.glob(args.dir + '/*_perf.txt')
     result = analysis.Result()
+    test = ''
     for filename in files:
         fields = parse_filename(os.path.basename(filename))
         if fields[7] != 'perf.txt':
             continue
+        test = fields[0]
         fs = fields[1]
         workload = fields[2]
-        nproc = int(fields[5])
+        if test == 'multifs':
+            x_value = int(fields[3])  # ndisks
+        else:
+            x_value = int(fields[5])  # nproc
         perf_data = perftest.parse_perf_data(filename)
         for event in perf_data:
-            result[fs, workload, event, nproc] = \
+            result[fs, workload, event, x_value] = \
                 {x[2]: x[0] for x in perf_data[event]}
         # print(filename)
         # print(result)
 
     output_prefix = os.path.join(outdir, os.path.basename(args.dir))
+    xlabel = '# of Cores'
+    if test == 'multifs':
+        xlabel = '# of Disks'
     for fs in result:  # filesystem
         for wl in result[fs]:  # Workload
             for event in result[fs, wl]:
                 outfile = output_prefix + \
                     '_%s_%s_%s_perf.%s' % (fs, wl, event, args.ext)
                 perftest.plot_top_perf_functions(
-                    result[fs, wl], event, 5, outfile, threshold=0.02)
+                    result[fs, wl], event, 5, outfile, threshold=0.02,
+                    xlabel=xlabel)
 
 
 def plot_lock_result(args):
@@ -294,22 +304,33 @@ def plot_lock_result(args):
     outdir = output_dir(args.dir)
     files = glob.glob(args.dir + '/*_lockstat.txt')
     result = analysis.Result()
+    test = ''
     for filename in files:
         fields = parse_filename(os.path.basename(filename))
+        test = fields[0]
         # print(fields)
-        if fields[0] == 'ncpu':
+        if test == 'ncpu':
             fs = fields[2]
             workload = fields[3]
-            nproc = int(fields[6])
+            x_value = int(fields[6])
         else:
             fs = fields[1]
             workload = fields[2]
-            nproc = int(fields[5])
+            if test == 'multifs':
+                x_value = int(fields[3])
+            else:
+                x_value = int(fields[5])
         lock_data = perftest.parse_lockstat_data(filename)
-        result[fs, workload, nproc] = lock_data
+        result[fs, workload, x_value] = lock_data
 
     xlabel = '# of cores'
     ylabel = 'Samples'
+    xticks = None
+    ylim = None
+    if test == 'multifs':
+        xlabel = '# of Disks'
+        xticks = [[1, 2, 3, 4], [1, 2, 3, 4]]
+        xlim = (0, 5)
     output_prefix = os.path.join(outdir, os.path.basename(args.dir))
     for fs in result:
         for wl in result[fs]:
@@ -353,7 +374,7 @@ def plot_lock_result(args):
                 outfile = output_prefix + \
                     '_%s_%s_%s_lockstat.%s' % (fs, wl, field, args.ext)
                 plot.plot(top_curves, 'Lockstat (%s)' % field,
-                          xlabel, ylabel, outfile)
+                          xlabel, ylabel, outfile, xticks=xticks, xlim=xlim)
 
 
 def main():
@@ -377,7 +398,6 @@ def main():
         plot_cpuscale_result(args)
     elif fields[1] == 'multifs':
         plot_multifs_result(args)
-        return
     else:
         print('Unknown test: %s' % fields[1])
         return
