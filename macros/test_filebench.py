@@ -138,13 +138,12 @@ def start_filebench(**kwargs):
     basedir = kwargs.get('basedir', 'ramdisks')
     output = kwargs.get('output', None)
     iosize = kwargs.get('iosize', '4k')
-    # the process should finish in 10 minutes
-    join_timeout = kwargs.get('timeout', 600)
+    # the process should finish in 20 minutes
+    join_timeout = kwargs.get('timeout', 1200)
     affinity = kwargs.get('affinity', False)
 
     q = Queue()
     tasks = []
-    total_tasks = ndisks * ndirs
     i = 0
     for disk in range(ndisks):
         for testdir in range(ndirs):
@@ -152,15 +151,14 @@ def start_filebench(**kwargs):
                                         'test{}'.format(testdir))
             args = {'cpus': ''}
             if affinity:
-                cpu_seq = 48 / total_tasks # use total_cpus() to get 48
-                args['cpus'] = "%d-%d" % (cpu_seq * i , cpu_seq * (i + 1) - 1)
-                print('CPUs: ', args['cpus'])
+                args['cpus'] = i % 48
                 i += 1
-            task = Process(target=filebench_task,
-                           args=(q, workload, testdir_path, 10000, nprocs,
-                                 nthreads, iosize, args))
-            task.start()
-            tasks.append(task)
+            for i in range(nprocs):
+                task = Process(target=filebench_task,
+                               args=(q, workload, testdir_path, 10000, 1,
+                                     nthreads, iosize, args))
+                task.start()
+                tasks.append(task)
     for task in tasks:
         task.join(join_timeout)
         if task.is_alive():
@@ -500,7 +498,7 @@ def test_multi_filesystem(args):
                               "{} disk {} dirs".format(num_disks, num_dirs))
                         output_prefix = '{}/multifs_{}_{}_{}_{}_{}_{}'.format(
                             check_point.outdir, fs, wl, num_disks, ndirs,
-                            int(nprocs / num_disks), i)
+                            nprocs, i)
                         while retry:
                             prepare_disks('ramdisks', num_disks, num_dirs,
                                           fs=fs, no_journal=args.no_journal)
