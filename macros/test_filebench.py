@@ -151,14 +151,14 @@ def start_filebench(**kwargs):
                                         'test{}'.format(testdir))
             args = {'cpus': ''}
             if affinity:
-                args['cpus'] = i % 48
+                seg = 48 / ndisks / ndirs
+                args['cpus'] = '%s-%s' % (i % seg, (i + 1) % seg - 1)
                 i += 1
-            for i in range(nprocs):
-                task = Process(target=filebench_task,
-                               args=(q, workload, testdir_path, 10000, 1,
-                                     nthreads, iosize, args))
-                task.start()
-                tasks.append(task)
+            task = Process(target=filebench_task,
+                           args=(q, workload, testdir_path, 10000, nprocs,
+                                 nthreads, iosize, args))
+            task.start()
+            tasks.append(task)
     for task in tasks:
         task.join(join_timeout)
         if task.is_alive():
@@ -504,7 +504,7 @@ def test_multi_filesystem(args):
                                           fs=fs, no_journal=args.no_journal)
                             if not run_filebench(
                                     wl, ndisks=num_disks, ndirs=num_dirs,
-                                    nprocs=nprocs, threads=1,
+                                    nprocs=nprocs / num_disks, threads=1,
                                     output=output_prefix,
                                     events=args.events,
                                     vmlinux=args.vmlinux,
@@ -602,7 +602,8 @@ def main():
                             default=1,
                             help='set the number of directories in each disk.')
     parser_run.add_argument('-p', '--process', type=int, metavar='NUM',
-                            default=1, help='set the number of processes.')
+                            default=1, help='set the number of processes in one'
+                            ' filebench instance.')
     parser_run.add_argument('-t', '--thread', type=int, metavar='NUM',
                             default=1, help='set the number of threads.')
     parser_run.add_argument(
