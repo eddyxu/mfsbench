@@ -504,7 +504,7 @@ def test_multi_filesystem(args):
                                           fs=fs, no_journal=args.no_journal)
                             if not run_filebench(
                                     wl, ndisks=num_disks, ndirs=num_dirs,
-                                    nprocs=nprocs / num_disks, threads=1,
+                                    nprocs=int(nprocs / num_disks), threads=1,
                                     output=output_prefix,
                                     events=args.events,
                                     vmlinux=args.vmlinux,
